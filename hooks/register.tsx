@@ -60,9 +60,9 @@ type Settings = {
   extraInstructions: string
 }
 
-// Digits 1-8 pick, 9 fills, 0 dismisses: bare digits are the only keys an
-// empty composer hands to a band Button.
-const SUGGESTIONS_LIMIT = 8
+// Digits 1-7 pick, 8 picks all but commands, 9 fills, 0 dismisses: bare
+// digits are the only keys an empty composer hands to a band Button.
+const SUGGESTIONS_LIMIT = 7
 const EXTRA_INSTRUCTIONS_MAX = 500
 const SKILL_NAME_MAX = 64
 const SKILL_DESCRIPTION_MAX = 120
@@ -358,6 +358,8 @@ const LIST_VALUE_MAX = 24
 // saying how many lines it left out.
 const SECTION_ROWS = FIELDS.length + 1
 const MIN_SECTION_ROWS = 6
+// The preview's prompt-box picture: a gap, its frame of three rows, a caption.
+const GHOST_ROWS = 5
 // Below the sections: a gap and the keys line.
 const FOOTER_ROWS = 2
 
@@ -371,21 +373,25 @@ const SAMPLES: readonly Suggestion[] = [
   { label: 'Open a pull request', prompt: 'Push the branch and open a pull request with a summary.', recommended: false },
   { label: 'Add a test for the edge case', prompt: 'Add a test for an empty input to the parser tests.', recommended: false },
   { label: 'Check the CI run', prompt: 'Check whether the CI run on this branch passed.', recommended: false },
-  { label: 'Clean up the TODOs', prompt: 'Resolve the TODO comments left in the files you changed.', recommended: false },
 ]
 
 // The suggestion band as these settings would draw it, line by line, as
 // plain text: a picture to read, with nothing to press. `claudeSuggests` is
 // Claude Code's own promptSuggestionEnabled: when it is false the faint
 // ghost text is not shown, whatever the plugin's ghostText says.
-function previewLines(s: Settings, claudeSuggests: boolean): Array<{ text: string; dim: boolean }> {
+type PreviewLine = { text: string; dim: boolean }
+// What the empty prompt box shows under the band: the faint ghost text, or
+// why there is none.
+type PreviewGhost = { text: string } | { off: string }
+
+function previewLines(s: Settings, claudeSuggests: boolean): { lines: PreviewLine[]; ghost: PreviewGhost } {
   const multi = s.selectMode === 'multi'
   const items = SAMPLES.slice(0, s.maxSuggestions).map(sample => {
     const prompt = clean(sample.prompt, s.promptChars)
     const label = s.display === 'prompt' ? prompt : clean(sample.label, s.labelChars)
     return { label, prompt, recommended: s.markRecommended && sample.recommended }
   })
-  const lines: Array<{ text: string; dim: boolean }> = [
+  const lines: PreviewLine[] = [
     {
       text: multi
         ? 'next: type numbers to pick, 9 to use them, 0 to dismiss'
@@ -402,17 +408,13 @@ function previewLines(s: Settings, claudeSuggests: boolean): Array<{ text: strin
     }
   })
   lines.push({ text: multi ? '  8: all except commands   9: use selected   0: dismiss' : '  0: dismiss', dim: false })
-  // The last line says what the empty prompt box shows: the faint ghost
-  // text, or why there is none.
   const top = items.find(item => item.recommended) ?? items[0]
-  if (!s.ghostText) {
-    lines.push({ text: 'ghost text: off (the Tab ghost text setting is off)', dim: true })
-  } else if (!claudeSuggests) {
-    lines.push({ text: 'ghost text: off (promptSuggestionEnabled is false in your Claude Code settings)', dim: true })
-  } else if (top !== undefined) {
-    lines.push({ text: `faint text in the empty prompt box (Tab accepts): ${top.prompt}`, dim: true })
-  }
-  return lines
+  const ghost: PreviewGhost = !s.ghostText
+    ? { off: 'the Tab ghost text setting is off' }
+    : !claudeSuggests
+      ? { off: 'promptSuggestionEnabled is false in your Claude Code settings' }
+      : { text: top?.prompt ?? '' }
+  return { lines, ghost }
 }
 const selected = atom({ plugin: 'next-steps-plus', key: 'selected' } as const, 'selectMode')
 // Why the last typed value was refused, shown under the box (toasts wait
@@ -469,7 +471,7 @@ async function pick($: EngineInterface, setting: Setting, value: ConfigRow['valu
 // The whole numbers each number setting takes, as its description says and
 // as settings() clamps them.
 const RANGES: Readonly<Record<string, readonly [number, number]>> = {
-  maxSuggestions: [1, 8],
+  maxSuggestions: [1, SUGGESTIONS_LIMIT],
   labelChars: [20, 300],
   promptChars: [200, 4000],
   minAnswerChars: [0, 100_000],
@@ -721,11 +723,10 @@ export const register: Register = (on, options) => {
           )
         })}
         <Box marginLeft={2} flexDirection="row" gap={3}>
-          {/* 8 is a suggestion's key when there are eight: then click only. */}
           {!multi || proseIndexes(items).length < 2 ? null : (
             <Button
               key="all"
-              hotkey={items.length < 8 ? '8' : undefined}
+              hotkey="8"
               plain
               label={`all${items.some(isCommand) ? ' except commands' : ''}`}
               onPress={() => pickAll($, items.length)}
@@ -924,9 +925,10 @@ export const register: Register = (on, options) => {
     const now = settings(Object.fromEntries(list.map(one => [one.field, one.row.value])))
     // Claude Code's own switch for prompt-box suggestions; unset means on.
     const claudeSuggests = (await $.settings.read({ key: 'promptSuggestionEnabled' }).catch(() => undefined)) !== false
-    const lines = previewLines(now, claudeSuggests)
-    // The line, the title and a blank row under it take three rows.
-    const room = sectionRows - 3
+    const { lines, ghost } = previewLines(now, claudeSuggests)
+    // The line, the title and a blank row take three rows, and the prompt-box
+    // picture under the band five (a gap, its frame of three, its caption).
+    const room = Math.max(1, sectionRows - 3 - GHOST_ROWS)
     const shownLines = lines.length > room ? [...lines.slice(0, room - 1), { text: `… ${lines.length - room + 1} more lines`, dim: true }] : lines
     const preview = (
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
@@ -943,6 +945,25 @@ export const register: Register = (on, options) => {
             {line.text}
           </Text>
         ))}
+        {/* The prompt box as a picture of its own, apart from the band, so
+            the ghost text reads as faint text in the box, not a choice. */}
+        <Box marginTop={1} borderStyle="round" borderDimColor paddingX={1}>
+          {'text' in ghost ? (
+            <Text>
+              {'> '}
+              <Text dimColor italic>
+                {ghost.text}
+              </Text>
+            </Text>
+          ) : (
+            <Text dimColor>{'> '}</Text>
+          )}
+        </Box>
+        <Text dimColor>
+          {'text' in ghost
+            ? '  ↑ your prompt box: faint ghost text, Tab accepts it'
+            : `  ↑ your prompt box: no ghost text (${ghost.off})`}
+        </Text>
       </Box>
     )
 

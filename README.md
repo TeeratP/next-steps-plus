@@ -61,7 +61,7 @@ Do these in order:
 2. Run the unit tests in tests/ and fix any failure, then re-run until green.
 ```
 
-- `8` ticks every suggestion except slash commands; press it again to untick them. When there are eight suggestions, `8` is the eighth one, so click **all** instead.
+- `8` ticks every suggestion except slash commands; press it again to untick them. (That's why there are at most 7 suggestions.)
 - A slash command (`/code-review high`) can only be used on its own, because anything after it would be read as its arguments. Ticking it unticks the others, and ticking anything else unticks it.
 
 ## Settings
@@ -82,7 +82,8 @@ Settings
   …
 ──────────────────────────────────────────────────────────────
 Max suggestions
-Show at most this many suggestions (1-8). Option mode decides
+Show at most this many suggestions (1-7; in multi mode 8 picks
+all, 9 uses the picks, 0 dismisses). Option mode decides
 whether the list may be shorter.
 Now: 3 · Default: 3 (same as the original next-steps)
 
@@ -98,14 +99,17 @@ next: type 1-3 to put one in the prompt box, 0 to dismiss
   2: Commit the change (Recommended)
   3: Review the diff
   0: dismiss
-faint text in the empty prompt box (Tab accepts): Commit the change with a short message describing it.
+╭──────────────────────────────────────────────────────────╮
+│ > Commit the change with a short message describing it.  │
+╰──────────────────────────────────────────────────────────╯
+  ↑ your prompt box: faint ghost text, Tab accepts it
 
 ↑↓ move · Enter change · Esc close
 ```
 
 - ↑↓ (or Tab) moves between settings.
 - Enter turns a switch on or off, or steps a choice to its next option. For a number or text, Enter puts the cursor in the box below: type the value and press Enter to save.
-- Numbers are checked before they're saved: a value that isn't a whole number in the setting's range (Max suggestions: 1–8) stays in the box with the reason in red, and nothing changes.
+- Numbers are checked before they're saved: a value that isn't a whole number in the setting's range (Max suggestions: 1–7) stays in the box with the reason in red, and nothing changes.
 - On a choice, a digit picks an option directly (`1: label  2: label+prompt  3: prompt`); ✓ marks the current one.
 - After each change the pane keeps the keyboard and stays on the same setting.
 - While the cursor is in a box, the box is framed in the accent colour and the setting's row in the list says `editing below ↓`; it shows the value again once you save or move back up.
@@ -118,7 +122,7 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | Setting | Default | What it does |
 | --- | --- | --- |
 | `selectMode` | `single`\* | `single`: a number key puts that one suggestion in the prompt box. `multi`: pick several, as [above](#picking-several-suggestions) |
-| `maxSuggestions` | `3`\* | The most suggestions to show, 1–8 |
+| `maxSuggestions` | `3`\* | The most suggestions to show, 1–7 (in multi mode `8` picks all, `9` uses the picks, `0` dismisses) |
 | `optionMode` | `up-to` | How many options to list. `up-to`: only the next steps that clearly matter, from none up to `maxSuggestions`, with no filler; you may see just one. `exactly`: always fill every slot |
 | `labelChars` | `48`\* | Longest suggestion label, 20–300 characters |
 | `promptChars` | `600`\* | Longest suggested prompt, 200–4000 characters |
@@ -149,7 +153,8 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 - The three parts share the pane's height equally, whatever room it has; in a short pane the settings list scrolls with the selection (`↑ n more` / `↓ n more`).
 - The setting's name is outside the box, to its left; the box holds only the value.
 - Each part opens with a plain line, its title (Settings, the setting's name, Preview) on the row under it.
-- The preview's last line shows what the empty prompt box shows: the faint ghost text, or that it's off and why (the `ghostText` setting, or Claude Code's `promptSuggestionEnabled` set to false).
+- Under the preview, a small picture of your prompt box shows the faint ghost text (grey italics), or an empty box with the reason it's off (the `ghostText` setting, or Claude Code's `promptSuggestionEnabled` set to false).
+- Max suggestions is now 1–7, since `8` is the key for picking all; a saved 8 is read as 7.
 
 ### v0.1.16
 

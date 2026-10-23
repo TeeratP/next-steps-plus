@@ -235,9 +235,8 @@ test('the preview shows sample suggestions as your settings draw them', async ($
   expect((await ui.find({ type: 'Text', text: /^next: type 1-3/ }))?.text).toBeDefined()
   expect((await ui.find({ type: 'Text', text: /^ {2}2: / }))?.text).toBe('  2: Commit the change (Recommended)')
   expect(await ui.find({ type: 'Text', text: /^ {2}4: / })).toBeUndefined()
-  expect((await ui.find({ type: 'Text', text: /^faint text/ }))?.text).toBe(
-    'faint text in the empty prompt box (Tab accepts): Commit the change with a short message describing it.',
-  )
+  expect((await ui.find({ type: 'Text', text: /^> / }))?.text).toBe('> Commit the change with a short message describing it.')
+  expect((await ui.find({ type: 'Text', text: /your prompt box/ }))?.text).toBe('  ↑ your prompt box: faint ghost text, Tab accepts it')
   await ui.unmount()
 })
 
@@ -308,10 +307,10 @@ test('the ghost text line says off when Claude Code turns prompt suggestions off
   settings(on)
   on('settings.read', () => ({ value: { promptSuggestionEnabled: false } }))
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
-  expect((await ui.find({ type: 'Text', text: /^ghost text/ }))?.text).toBe(
-    'ghost text: off (promptSuggestionEnabled is false in your Claude Code settings)',
+  expect((await ui.find({ type: 'Text', text: /your prompt box/ }))?.text).toBe(
+    '  ↑ your prompt box: no ghost text (promptSuggestionEnabled is false in your Claude Code settings)',
   )
-  expect(await ui.find({ type: 'Text', text: /^faint text/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /Commit the change with a short/ })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -320,7 +319,30 @@ test("the ghost text line says off when the plugin's ghostText is off", async ($
   const saved = [...ROWS]
   ROWS[2] = row('ghostText', 'Tab ghost text (default: on)', 'boolean', false, '')
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
-  expect((await ui.find({ type: 'Text', text: /^ghost text/ }))?.text).toBe('ghost text: off (the Tab ghost text setting is off)')
+  expect((await ui.find({ type: 'Text', text: /your prompt box/ }))?.text).toBe(
+    '  ↑ your prompt box: no ghost text (the Tab ghost text setting is off)',
+  )
+  ROWS.splice(0, ROWS.length, ...saved)
+  await ui.unmount()
+})
+
+test('max suggestions stops at 7: 8 is the key for all but commands', async ($, on) => {
+  const sets = settings(on)
+  const saved = [...ROWS]
+  ROWS.push(row('maxSuggestions', 'Max suggestions (default: 3)', 'number', 8, ''))
+  ROWS[0] = row('selectMode', 'Selection mode (default: single)', 'choice', 'multi', '', ['multi', 'single'])
+  const ui = await $.ui.mount({ ...pane(96, true, 80), surface: 'terminal' })
+  // A saved 8 is read as 7: the preview stops at 7, and 8 stays "all".
+  expect((await ui.find({ type: 'Text', text: /^ {2}7: / }))?.text).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^ {2}8: \[/ })).toBeUndefined()
+  expect((await ui.find({ type: 'Text', text: /^ {2}8: all/ }))?.text).toBeDefined()
+  await ui.press({ key: 'maxSuggestions' })
+  await ui.input({ key: 'edit', text: '8' })
+  expect((await ui.find({ type: 'Text', text: /was not saved/ }))?.text).toBe(
+    'Max suggestions takes a whole number from 1 to 7; "8" was not saved.',
+  )
+  await ui.input({ key: 'edit', text: '7' })
+  expect(sets).toEqual([['next-steps-plus.maxSuggestions', 7]])
   ROWS.splice(0, ROWS.length, ...saved)
   await ui.unmount()
 })

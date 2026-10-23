@@ -29,7 +29,7 @@
     "maxSuggestions": {
       "type": "number",
       "title": "Max suggestions (default: 3)",
-      "description": "Show at most this many suggestions (1-8). Option mode decides whether the list may be shorter.",
+      "description": "Show at most this many suggestions (1-7; in multi mode 8 picks all, 9 uses the picks, 0 dismisses). Option mode decides whether the list may be shorter.",
       "required": false,
       "default": 3
     },

@@ -203,3 +203,11 @@ test('multi: pressing all again clears the picks', MULTI, async ($, on) => {
   expect(await ui.find({ type: 'Button', text: /use selected/ })).toBeUndefined()
   await ui.unmount()
 })
+
+test('8 is always the key for all but commands', { options: { selectMode: 'multi', maxSuggestions: 8 } }, async ($, on) => {
+  await offer($, on)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ type: 'Button', key: 'all' })).toBeDefined()
+  expect(asked).toContain('up to 7 concrete prompts')
+  await ui.unmount()
+})
