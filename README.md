@@ -64,7 +64,7 @@ Turn off the original first if you have it, or both will draw a band: `/plugin` 
 
 ## Options
 
-Set them in `/config` (or under `pluginConfigs` in settings). A change reloads the plugin.
+Set them on the install screen or later in `/config` (or under `pluginConfigs` in settings). Both screens show each default at the end of the setting's title, e.g. "Label length (default: 120)", so you can leave anything you don't need to change. A change reloads the plugin.
 
 | Option | Default | What it does |
 | --- | --- | --- |
@@ -79,6 +79,15 @@ Set them in `/config` (or under `pluginConfigs` in settings). A change reloads t
 | `ghostText` | `true` | Also show the top suggestion as Tab-to-take ghost text in the box |
 | `suggestSkills` | `true` | Tell the suggester which skills and slash commands the session has |
 | `minAnswerChars` | `80` | Skip suggestions after answers shorter than this |
+
+## Changelog
+
+### v0.1.1
+
+- Multi-select: number keys toggle suggestions, `9` fills every pick as one numbered draft; slash commands run alone.
+- Pick all: `8` (or **all**) picks every suggestion except slash commands; press again to clear.
+- Prompt preview off by default (`previewChars: 0`).
+- The install screen and `/config` show each setting's default in its title.
 
 ## License
 
