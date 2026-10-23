@@ -1,6 +1,6 @@
 # Changelog
 
-### Unreleased
+### v0.2.1
 
 - The model may mark more than one step (Recommended): every step that clearly should be done now, not just one.
 
