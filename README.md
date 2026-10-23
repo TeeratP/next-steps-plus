@@ -71,6 +71,8 @@ Change them on the install screen, in `/config`, or in the plugin's own settings
 The settings pane has three parts: every setting with its value on top; the selected setting in the middle (its description, current value, default, and where to change it); and at the bottom a preview of the suggestion list as your settings draw it, using sample suggestions.
 
 ```
+──────────────────────────────────────────────────────────────
+Settings
   Selection mode                     single
 ▸ Max suggestions                    3
   Option mode                        up-to
@@ -82,14 +84,15 @@ The settings pane has three parts: every setting with its value on top; the sele
 Max suggestions
 Show at most this many suggestions (1-8). Option mode decides
 whether the list may be shorter.
+Now: 3 · Default: 3 (same as the original next-steps)
 
-Now: 3
-Default: 3 (same as the original next-steps)
-
-[ Max suggestions: 3 ]
-Enter: edit in the box above
+Enter: edit in the box below
+                  ╭──────────────────╮
+Max suggestions:  │ 3                │
+                  ╰──────────────────╯
 ──────────────────────────────────────────────────────────────
 Preview (sample suggestions with your settings; up-to often shows fewer)
+
 next: type 1-3 to put one in the prompt box, 0 to dismiss
   1: Run the tests
   2: Commit the change (Recommended)
@@ -145,6 +148,7 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 - While you type, the box is framed in the accent colour with a bold "▶ Type …" line over it, and the row's `editing below ↓` is in the same colour, so the cursor is easy to find.
 - The three parts share the pane's height equally, whatever room it has; in a short pane the settings list scrolls with the selection (`↑ n more` / `↓ n more`).
 - The setting's name is outside the box, to its left; the box holds only the value.
+- Each part opens with a plain line, its title (Settings, the setting's name, Preview) on the row under it.
 
 ### v0.1.16
 

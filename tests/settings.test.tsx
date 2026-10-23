@@ -289,3 +289,17 @@ test("the setting's name sits outside the box, left of it", async ($, on) => {
   expect((await ui.find({ type: 'Input', key: 'edit' }))?.text).toBe('48')
   await ui.unmount()
 })
+
+test('each section opens with a plain line, its title on the row under it', async ($, on) => {
+  settings(on)
+  const ui = await $.ui.mount({ ...pane(40), surface: 'terminal' })
+  const lines = await ui.findAll({ type: 'Text', text: /^─+$/ })
+  expect(lines.length).toBe(3)
+  expect(lines[0]?.text).toBe('─'.repeat(40))
+  expect((await ui.find({ type: 'Text', text: /^Settings$/ }))?.text).toBe('Settings')
+  expect((await ui.find({ type: 'Text', text: /^Selection mode$/ }))?.text).toBe('Selection mode')
+  expect((await ui.find({ type: 'Text', text: /^Preview / }))?.text).toBe(
+    'Preview (sample suggestions with your settings; up-to often shows fewer)',
+  )
+  await ui.unmount()
+})

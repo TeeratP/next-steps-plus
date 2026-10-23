@@ -533,7 +533,7 @@ function hint(setting: Setting, inBox: boolean): string {
   if (count > 0) return `Type 1-${count} to pick, or Enter for the next option`
   const [low, high] = RANGES[setting.field] ?? [0, 0]
   const what = row.kind === 'number' ? `Type a whole number ${low}-${high}` : 'Type the text (empty for none)'
-  return inBox ? `${what}, then Enter to save · Esc: back to the list` : 'Enter: edit in the box above'
+  return inBox ? `${what}, then Enter to save · Esc: back to the list` : 'Enter: edit in the box below'
 }
 
 // Settings renamed in earlier versions. An update never touches saved
@@ -790,7 +790,7 @@ export const register: Register = (on, options) => {
     const sectionRows = Math.max(MIN_SECTION_ROWS, Math.floor((e.props.scroll.bodyRows - FOOTER_ROWS) / 3))
     // The rows of the list in view: all when they fit under the title, else a
     // window around the selection with a marker row above and below it.
-    const slots = sectionRows - 1
+    const slots = sectionRows - 2
     const scrolls = list.length > slots
     const visible = scrolls ? Math.max(1, slots - 2) : list.length
     const at = Math.max(0, list.indexOf(current))
@@ -800,14 +800,16 @@ export const register: Register = (on, options) => {
     const values = row.isLocked ? [] : quickPicks(current)
 
     const cols = Math.max(1, e.props.bodyColumns)
-    // A section's first row: its title inside a rule, as wide as the pane.
-    const rule = (title: string) => `── ${title} ${'─'.repeat(Math.max(0, cols - title.length - 4))}`
+    // Each section opens with a plain line as wide as the pane, its title on
+    // the row under it.
+    const line = '─'.repeat(cols)
     const editingHere = inBox === current.field
 
     // Top: every setting and its value; the one being typed says so, in colour.
     const rows = (
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
-        <Text dimColor>{rule('Settings')}</Text>
+        <Text dimColor>{line}</Text>
+        <Text bold>Settings</Text>
         {scrolls ? <Text dimColor>{first > 0 ? `  ↑ ${first} more` : ' '}</Text> : null}
         {inView.map(one => (
           <Button
@@ -835,12 +837,13 @@ export const register: Register = (on, options) => {
     // Middle: the selected setting, and where to change it.
     const details = (
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
+        <Text dimColor>{line}</Text>
         {editingHere ? (
           <Text color="claude" bold>
-            {rule(current.name)}
+            {current.name}
           </Text>
         ) : (
-          <Text dimColor>{rule(current.name)}</Text>
+          <Text bold>{current.name}</Text>
         )}
         <Text>{row.description ?? ''}</Text>
         <Text>
@@ -912,13 +915,17 @@ export const register: Register = (on, options) => {
     // Bottom: the band as these settings draw it, cut to the section.
     const now = settings(Object.fromEntries(list.map(one => [one.field, one.row.value])))
     const lines = previewLines(now)
-    // The title rule and a blank line under it take two rows.
-    const room = sectionRows - 2
+    // The line, the title and a blank row under it take three rows.
+    const room = sectionRows - 3
     const shownLines = lines.length > room ? [...lines.slice(0, room - 1), { text: `… ${lines.length - room + 1} more lines`, dim: true }] : lines
     const preview = (
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
-        <Text dimColor>
-          {rule(`Preview: sample suggestions with your settings${now.optionMode === 'up-to' ? ' (up-to often shows fewer)' : ''}`)}
+        <Text dimColor>{line}</Text>
+        <Text bold>
+          Preview{' '}
+          <Text dimColor>
+            {`(sample suggestions with your settings${now.optionMode === 'up-to' ? '; up-to often shows fewer' : ''})`}
+          </Text>
         </Text>
         <Text> </Text>
         {shownLines.map((line, index) => (
