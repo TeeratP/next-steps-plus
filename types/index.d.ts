@@ -5,6 +5,8 @@ declare module 'claude-code' {
       selected: string
       // Why the last typed number was refused; empty when none was.
       refusal: string
+      // The setting whose box holds the cursor; empty while on the list.
+      editing: string
     }
   }
 }

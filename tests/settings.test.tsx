@@ -43,7 +43,9 @@ function settings(on: On): Array<[string, ConfigRow['value']]> {
   on('config.list', () => ({ value: ROWS }))
   on('config.set', (_, e) => (sets.push([e.key, e.value]), { value: e.value }))
   on('ui.open', () => ((reopened += 1), { value: { isPlaced: true } }))
-  on('ui.focus', () => ({}))
+  // A person's move is the event (answered with its result); the plugin's
+  // own $.ui.focus is a call on $ (answered with { value }).
+  on('ui.focus', (_, e) => (e.origin.kind === 'person' ? {} : ({ value: {} } as never)))
   return sets
 }
 
@@ -189,4 +191,65 @@ test('a value saved under an old name is carried to the new one, once', async ($
 test('a value already saved under the new name is never overwritten', async ($, on) => {
   const sets = await carriedFrom($, on, { countMode: 'exactly', optionMode: 'up-to', previewFlag: true, display: 'prompt' })
   expect(sets).toEqual([])
+})
+
+const MARK = /editing below ↓/
+
+test('the row says "editing below" while the cursor is in its box', async ($, on) => {
+  settings(on)
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  await ui.press({ key: 'labelChars' })
+  expect((await ui.find({ type: 'Button', key: 'labelChars' }))?.text).toMatch(MARK)
+  expect((await ui.find({ type: 'Text', text: /Esc: back to the list/ }))?.text).toBe(
+    'Type a whole number 20-300, then Enter to save · Esc: back to the list',
+  )
+  // Moving up to another row shows the value again.
+  await focus($, 'selectMode')
+  expect((await ui.find({ type: 'Button', key: 'labelChars' }))?.text).toContain('48')
+  expect(await ui.find({ type: 'Button', text: MARK })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('saving from the box shows the value again', async ($, on) => {
+  const sets = settings(on)
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  await ui.press({ key: 'labelChars' })
+  await ui.input({ key: 'edit', text: '80' })
+  expect(sets).toEqual([['next-steps-plus.labelChars', 80]])
+  expect(await ui.find({ type: 'Button', text: MARK })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a refused number keeps the cursor in the box, still marked', async ($, on) => {
+  settings(on)
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  await ui.press({ key: 'labelChars' })
+  await ui.input({ key: 'edit', text: 'abc' })
+  expect((await ui.find({ type: 'Button', key: 'labelChars' }))?.text).toMatch(MARK)
+  await ui.unmount()
+})
+
+test('the preview shows sample suggestions as your settings draw them', async ($, on) => {
+  settings(on)
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /^next: type 1-3/ }))?.text).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /^ {2}2: / }))?.text).toBe('  2: Commit the change (Recommended)')
+  expect(await ui.find({ type: 'Text', text: /^ {2}4: / })).toBeUndefined()
+  expect((await ui.find({ type: 'Text', text: /^prompt box/ }))?.text).toBe(
+    'prompt box (Tab takes it): Commit the change with a short message describing it.',
+  )
+  await ui.unmount()
+})
+
+test('the preview follows multi-select and display settings', async ($, on) => {
+  settings(on)
+  const saved = [...ROWS]
+  ROWS.push(row('display', 'Display (default: label)', 'choice', 'prompt', '', ['label', 'label+prompt', 'prompt']))
+  ROWS[0] = row('selectMode', 'Selection mode (default: single)', 'choice', 'multi', '', ['multi', 'single'])
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /^ {2}3: / }))?.text).toBe('  3: [ ] /code-review high (runs alone)')
+  expect((await ui.find({ type: 'Text', text: /^ {2}1: / }))?.text).toBe('  1: [ ] Run the unit tests in tests/ and fix any failure.')
+  expect((await ui.find({ type: 'Text', text: /use selected/ }))?.text).toBe('  8: all except commands   9: use selected   0: dismiss')
+  ROWS.splice(0, ROWS.length, ...saved)
+  await ui.unmount()
 })

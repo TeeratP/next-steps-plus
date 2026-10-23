@@ -354,10 +354,63 @@ const LIST_VALUE_MAX = 24
 // Rows the pane asks for beyond one per setting: the rule, the details, the
 // editor and the keys line, so every row shows without scrolling.
 const PANE_EXTRA_ROWS = 16
+// Rows for the preview at the bottom: its rule and caption, the hint, up to
+// eight suggestions with a prompt line each, the keys row and the ghost line.
+const PREVIEW_ROWS = 22
+
+// What the preview shows: made-up next steps, one of them recommended and
+// one a slash command, run through the person's settings as real ones are.
+const SAMPLES: readonly Suggestion[] = [
+  { label: 'Run the tests', prompt: 'Run the unit tests in tests/ and fix any failure.', recommended: false },
+  { label: 'Commit the change', prompt: 'Commit the change with a short message describing it.', recommended: true },
+  { label: 'Review the diff', prompt: '/code-review high', recommended: false },
+  { label: 'Update the README', prompt: 'Add the new option to the README settings table.', recommended: false },
+  { label: 'Open a pull request', prompt: 'Push the branch and open a pull request with a summary.', recommended: false },
+  { label: 'Add a test for the edge case', prompt: 'Add a test for an empty input to the parser tests.', recommended: false },
+  { label: 'Check the CI run', prompt: 'Check whether the CI run on this branch passed.', recommended: false },
+  { label: 'Clean up the TODOs', prompt: 'Resolve the TODO comments left in the files you changed.', recommended: false },
+]
+
+// The suggestion band as these settings would draw it, line by line, as
+// plain text: a picture to read, with nothing to press.
+function previewLines(s: Settings): Array<{ text: string; dim: boolean }> {
+  const multi = s.selectMode === 'multi'
+  const items = SAMPLES.slice(0, s.maxSuggestions).map(sample => {
+    const prompt = clean(sample.prompt, s.promptChars)
+    const label = s.display === 'prompt' ? prompt : clean(sample.label, s.labelChars)
+    return { label, prompt, recommended: s.markRecommended && sample.recommended }
+  })
+  const lines: Array<{ text: string; dim: boolean }> = [
+    {
+      text: multi
+        ? 'next: type numbers to pick, 9 to use them, 0 to dismiss'
+        : `next: type ${items.length === 1 ? '1' : `1-${items.length}`} to put one in the prompt box, 0 to dismiss`,
+      dim: true,
+    },
+  ]
+  items.forEach((item, index) => {
+    const mark = multi ? '[ ] ' : ''
+    const alone = multi && item.prompt.startsWith('/') ? ' (runs alone)' : ''
+    lines.push({ text: `  ${index + 1}: ${mark}${item.label}${item.recommended ? RECOMMENDED : ''}${alone}`, dim: false })
+    if (s.display === 'label+prompt' && item.prompt !== item.label) {
+      lines.push({ text: `${' '.repeat(multi ? 9 : 5)}${item.prompt}`, dim: true })
+    }
+  })
+  lines.push({ text: multi ? '  8: all except commands   9: use selected   0: dismiss' : '  0: dismiss', dim: false })
+  if (s.ghostText) {
+    const top = items.find(item => item.recommended) ?? items[0]
+    if (top !== undefined) lines.push({ text: `prompt box (Tab takes it): ${top.prompt}`, dim: true })
+  }
+  return lines
+}
 const selected = atom({ plugin: 'next-steps-plus', key: 'selected' } as const, 'selectMode')
 // Why the last typed value was refused, shown under the box (toasts wait
 // while the pane is open, so one would go unseen); empty when there is none.
 const refusal = atom({ plugin: 'next-steps-plus', key: 'refusal' } as const, '')
+// The setting whose box holds the cursor, its list row saying so; empty while
+// the cursor is on the list.
+const editing = atom({ plugin: 'next-steps-plus', key: 'editing' } as const, '')
+const EDITING_MARK = 'editing below ↓'
 
 type Setting = { field: string; name: string; fallback: string; row: ConfigRow }
 
@@ -396,6 +449,7 @@ async function refocus($: EngineInterface, field: string): Promise<void> {
 
 async function pick($: EngineInterface, setting: Setting, value: ConfigRow['value']): Promise<void> {
   await update($, selected, () => setting.field)
+  await update($, editing, () => '')
   if (setting.row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
   await setValue($, setting.row.key, value)
   await refocus($, setting.field)
@@ -438,7 +492,18 @@ async function change($: EngineInterface, setting: Setting): Promise<void> {
   }
   await update($, selected, () => setting.field)
   if (row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
-  await $.ui.focus({ requestId: PANE, key: EDITOR }).catch(() => undefined)
+  await update($, editing, () => setting.field)
+  // Only a move the engine refused clears the mark; a call that errored
+  // leaves it, and the next move, save or Esc clears it anyway.
+  const moved = await $.ui.focus({ requestId: PANE, key: EDITOR }).catch(() => ({}))
+  if ('deny' in moved && moved.deny !== undefined) await update($, editing, () => '')
+}
+
+// Esc in the box: back to the setting's row, the pane kept open.
+async function leaveBox($: EngineInterface, field: string): Promise<void> {
+  await update($, editing, () => '')
+  await update($, refusal, () => '')
+  await refocus($, field)
 }
 
 // Enter in the box: a number is checked before it is saved; a refused one
@@ -457,13 +522,15 @@ async function submit($: EngineInterface, setting: Setting, text: string): Promi
   await pick($, setting, text)
 }
 
-function hint(setting: Setting): string {
+function hint(setting: Setting, inBox: boolean): string {
   const { row } = setting
   if (row.isLocked) return 'Set by your organization.'
   if (row.kind === 'boolean') return `Enter: turn ${row.value === true ? 'off' : 'on'}`
   const count = quickPicks(setting).length
   if (count > 0) return `Type 1-${count} to pick, or Enter for the next option`
-  return 'Enter: put the cursor in the box above, type, then Enter to save'
+  const [low, high] = RANGES[setting.field] ?? [0, 0]
+  const what = row.kind === 'number' ? `Type a whole number ${low}-${high}` : 'Type the text (empty for none)'
+  return inBox ? `${what}, then Enter to save · Esc: back to the list` : 'Enter: edit in the box above'
 }
 
 // Settings renamed in earlier versions. An update never touches saved
@@ -518,7 +585,7 @@ function openSettings($: EngineInterface) {
     focus: true,
     closeOnEscape: true,
     holdToasts: true,
-    rows: FIELDS.length + PANE_EXTRA_ROWS,
+    rows: FIELDS.length + PANE_EXTRA_ROWS + PREVIEW_ROWS,
     columns: 72,
   })
 }
@@ -686,8 +753,22 @@ export const register: Register = (on, options) => {
     if (result.deny === undefined && element !== undefined && (FIELDS as readonly string[]).includes(element)) {
       await update($, selected, () => element)
       await update($, refusal, () => '')
+      await update($, editing, () => '')
+    } else if (result.deny === undefined && element === EDITOR) {
+      // The person tabbed or clicked into the box.
+      const field = await read($, selected)
+      await update($, editing, () => field)
     }
     return result
+  }).catch(($, e, next) => next(e))
+
+  // Esc closes the pane (closeOnEscape), except while the cursor is in the
+  // box: then it only leaves the box. Answering without next keeps it open.
+  on('ui.close', { id: PANE }, async ($, e, next) => {
+    const field = await read($, editing)
+    if (e.origin.kind !== 'person' || field === '') return next(e)
+    await leaveBox($, field)
+    return { value: undefined }
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e): Promise<RenderElement> => {
@@ -697,6 +778,7 @@ export const register: Register = (on, options) => {
     const list = await ownSettings($)
     const chosen = await read($, selected)
     const refused = await read($, refusal)
+    const inBox = await read($, editing)
     const current = list.find(one => one.field === chosen) ?? list[0]
     if (current === undefined) return <Text dimColor>No next-steps-plus settings found; try /config.</Text>
     // The list on top, the selected setting in full below it: a pane docked
@@ -715,7 +797,7 @@ export const register: Register = (on, options) => {
             onPress={() => void change($, one)}
           >
             {`${one.field === current.field ? '▸ ' : '  '}${one.name.padEnd(nameWidth)}`}
-            <Text dimColor>{clean(shown(one.row.value), LIST_VALUE_MAX)}</Text>
+            <Text dimColor>{one.field === inBox ? EDITING_MARK : clean(shown(one.row.value), LIST_VALUE_MAX)}</Text>
           </Button>
         ))}
       </Box>
@@ -763,15 +845,31 @@ export const register: Register = (on, options) => {
                 onSubmit={value => void submit($, current, value)}
               />
               {refused === '' ? (
-                <Text dimColor>{hint(current)}</Text>
+                <Text dimColor>{hint(current, inBox === current.field)}</Text>
               ) : (
                 <Text color="error">{refused}</Text>
               )}
             </Box>
           ) : (
-            <Text dimColor>{hint(current)}</Text>
+            <Text dimColor>{hint(current, false)}</Text>
           )}
         </Box>
+      </Box>
+    )
+
+    // The settings as the band reads them: the rows' saved values.
+    const now = settings(Object.fromEntries(list.map(one => [one.field, one.row.value])))
+    const preview = (
+      <Box flexDirection="column" marginTop={1}>
+        <Text dimColor>{'─'.repeat(Math.max(1, e.props.bodyColumns))}</Text>
+        <Text bold>
+          Preview <Text dimColor>(sample suggestions with your settings{now.optionMode === 'up-to' ? '; up-to often shows fewer' : ''})</Text>
+        </Text>
+        {previewLines(now).map((line, index) => (
+          <Text key={`preview-${index}`} dimColor={line.dim}>
+            {line.text}
+          </Text>
+        ))}
       </Box>
     )
 
@@ -779,6 +877,7 @@ export const register: Register = (on, options) => {
       <Box flexDirection="column">
         {rows}
         {details}
+        {preview}
         <Box marginTop={1}>
           {/* With text in the prompt box the pane opens without the keyboard, and
               a plugin cannot take it: say how the person hands it over. */}

@@ -68,7 +68,7 @@ Do these in order:
 
 Change them on the install screen, in `/config`, or in the plugin's own settings pane: type `/next-steps-plus`. A change takes effect right away, and all three show and change the same values.
 
-The settings pane lists every setting with its value, and shows the selected one in full below the list: its description, its current value, and its default.
+The settings pane has three parts: every setting with its value on top; the selected setting in the middle (its description, current value, default, and where to change it); and at the bottom a preview of the suggestion list as your settings draw it, using sample suggestions.
 
 ```
   Selection mode                     single
@@ -87,7 +87,15 @@ Now: 3
 Default: 3 (same as the original next-steps)
 
 [ Max suggestions: 3 ]
-Enter: put the cursor in the box above, type, then Enter to save
+Enter: edit in the box above
+──────────────────────────────────────────────────────────────
+Preview (sample suggestions with your settings; up-to often shows fewer)
+next: type 1-3 to put one in the prompt box, 0 to dismiss
+  1: Run the tests
+  2: Commit the change (Recommended)
+  3: Review the diff
+  0: dismiss
+prompt box (Tab takes it): Commit the change with a short message describing it.
 
 ↑↓ move · Enter change · Esc close
 ```
@@ -97,7 +105,9 @@ Enter: put the cursor in the box above, type, then Enter to save
 - Numbers are checked before they're saved: a value that isn't a whole number in the setting's range (Max suggestions: 1–8) stays in the box with the reason in red, and nothing changes.
 - On a choice, a digit picks an option directly (`1: label  2: label+prompt  3: prompt`); ✓ marks the current one.
 - After each change the pane keeps the keyboard and stays on the same setting.
-- Esc closes the pane.
+- While the cursor is in a box, the setting's row in the list says `editing below ↓`; it shows the value again once you save or move back up.
+- Esc in a box goes back to the list without saving; Esc on the list closes the pane.
+- The preview at the bottom changes as soon as you change a setting.
 - If the pane opens while the prompt box has text, your keys stay in the prompt (the pane says so at the bottom). Press ctrl+x, then Tab, to move them to the pane; Esc hands them back.
 
 The pane opens beside the conversation in a wide terminal, or above the prompt otherwise. Long values are shortened with … in the list; the full value shows below as Now.
@@ -125,6 +135,12 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.17 (not released yet)
+
+- Settings pane: a setting's row says `editing below ↓` while the cursor is in its box.
+- Esc in a box goes back to the list instead of closing the pane; the hint under the box says so.
+- A preview at the bottom of the pane shows the suggestion list as your settings draw it.
 
 ### v0.1.16
 
