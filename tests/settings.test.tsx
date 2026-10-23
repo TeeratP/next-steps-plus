@@ -4,7 +4,7 @@ import type { ConfigRow, On } from 'claude-code'
 
 const PANE_ID = 'next-steps-plus-settings'
 
-function pane(bodyColumns: number, isFocused = true) {
+function pane(bodyColumns: number, isFocused = true, bodyRows = 50) {
   return {
     plugin: 'next-steps-plus',
     component: 'Pane',
@@ -14,7 +14,7 @@ function pane(bodyColumns: number, isFocused = true) {
       isFocused,
       bodyColumns,
       placement: 'dock',
-      scroll: { offset: 0, bodyRows: 30 },
+      scroll: { offset: 0, bodyRows },
       view: {},
     },
   } as const
@@ -262,5 +262,30 @@ test('the preview is cut to its section, saying how much it left out', async ($,
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /more lines$/ }))?.text).toMatch(/^… \d+ more lines$/)
   ROWS.splice(0, ROWS.length, ...saved)
+  await ui.unmount()
+})
+
+test('a short pane scrolls the list with the selection', async ($, on) => {
+  settings(on)
+  const saved = [...ROWS]
+  ROWS.push(row('maxSuggestions', 'Max suggestions (default: 3)', 'number', 3, ''))
+  ROWS.push(row('promptChars', 'Prompt length (default: 600)', 'number', 600, ''))
+  ROWS.push(row('minAnswerChars', 'Shortest answer to suggest after (default: 80)', 'number', 80, ''))
+  // 20 rows: a footer of 2, then three sections of 6; the list shows 3 rows.
+  const ui = await $.ui.mount({ ...pane(96, true, 20), surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /↓ \d+ more/ }))?.text).toMatch(/↓ \d+ more/)
+  await focus($, 'minAnswerChars')
+  expect(await ui.find({ type: 'Button', key: 'minAnswerChars' })).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /↑ \d+ more/ }))?.text).toMatch(/↑ \d+ more/)
+  ROWS.splice(0, ROWS.length, ...saved)
+  await ui.unmount()
+})
+
+test("the setting's name sits outside the box, left of it", async ($, on) => {
+  settings(on)
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  await focus($, 'labelChars')
+  expect((await ui.find({ type: 'Text', text: /^Label length: $/ }))?.text).toBe('Label length: ')
+  expect((await ui.find({ type: 'Input', key: 'edit' }))?.text).toBe('48')
   await ui.unmount()
 })

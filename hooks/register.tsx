@@ -351,10 +351,13 @@ const NEW_FIELDS: ReadonlySet<string> = new Set(['optionMode', 'combineHeader', 
 const EDITOR = 'edit'
 // A list value longer than this is cut with an ellipsis; "Now:" shows it whole.
 const LIST_VALUE_MAX = 24
-// The pane's three sections (settings, the selected one, the preview) are
-// the same fixed height: a title rule and one row per setting. What does not
-// fit a section is cut, the preview saying how many lines it left out.
+// The pane's three sections (settings, the selected one, the preview) share
+// the pane's rows equally, whatever room the surface gave it. The pane asks
+// for enough to show every setting (a title rule and one row each); with less,
+// the list scrolls with the selection and the others are cut, the preview
+// saying how many lines it left out.
 const SECTION_ROWS = FIELDS.length + 1
+const MIN_SECTION_ROWS = 6
 // Below the sections: a gap and the keys line.
 const FOOTER_ROWS = 2
 
@@ -784,6 +787,15 @@ export const register: Register = (on, options) => {
     // The list on top, the selected setting in full below it: a pane docked
     // beside the transcript is too narrow for two readable columns.
     const nameWidth = Math.max(...list.map(one => one.name.length)) + 2
+    const sectionRows = Math.max(MIN_SECTION_ROWS, Math.floor((e.props.scroll.bodyRows - FOOTER_ROWS) / 3))
+    // The rows of the list in view: all when they fit under the title, else a
+    // window around the selection with a marker row above and below it.
+    const slots = sectionRows - 1
+    const scrolls = list.length > slots
+    const visible = scrolls ? Math.max(1, slots - 2) : list.length
+    const at = Math.max(0, list.indexOf(current))
+    const first = scrolls ? Math.min(Math.max(0, at - Math.floor(visible / 2)), list.length - visible) : 0
+    const inView = list.slice(first, first + visible)
     const { row } = current
     const values = row.isLocked ? [] : quickPicks(current)
 
@@ -794,9 +806,10 @@ export const register: Register = (on, options) => {
 
     // Top: every setting and its value; the one being typed says so, in colour.
     const rows = (
-      <Box flexDirection="column" height={SECTION_ROWS} overflow="hidden" flexShrink={0}>
+      <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
         <Text dimColor>{rule('Settings')}</Text>
-        {list.map(one => (
+        {scrolls ? <Text dimColor>{first > 0 ? `  ↑ ${first} more` : ' '}</Text> : null}
+        {inView.map(one => (
           <Button
             key={one.field}
             plain
@@ -813,12 +826,15 @@ export const register: Register = (on, options) => {
             )}
           </Button>
         ))}
+        {scrolls ? (
+          <Text dimColor>{first + visible < list.length ? `  ↓ ${list.length - first - visible} more` : ' '}</Text>
+        ) : null}
       </Box>
     )
 
     // Middle: the selected setting, and where to change it.
     const details = (
-      <Box flexDirection="column" height={SECTION_ROWS} overflow="hidden" flexShrink={0}>
+      <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
         {editingHere ? (
           <Text color="claude" bold>
             {rule(current.name)}
@@ -857,15 +873,23 @@ export const register: Register = (on, options) => {
               ) : (
                 <Text dimColor>{hint(current, false)}</Text>
               )}
-              <Box
-                borderStyle="round"
-                borderColor={editingHere ? 'claude' : undefined}
-                borderDimColor={editingHere ? undefined : true}
-                paddingX={1}
-              >
+              {/* The setting's name sits outside, left of the box; the box
+                  holds only the value being typed. */}
+              <Box flexDirection="row" alignItems="center">
+                {editingHere ? (
+                  <Text color="claude" bold>{`${current.name}: `}</Text>
+                ) : (
+                  <Text>{`${current.name}: `}</Text>
+                )}
+                <Box
+                  borderStyle="round"
+                  borderColor={editingHere ? 'claude' : undefined}
+                  borderDimColor={editingHere ? undefined : true}
+                  paddingX={1}
+                  flexGrow={1}
+                >
                 <Input
                   key={EDITOR}
-                  label={current.name}
                   value={typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : ''}
                   placeholder={
                     row.kind === 'number'
@@ -874,6 +898,7 @@ export const register: Register = (on, options) => {
                   }
                   onSubmit={value => void submit($, current, value)}
                 />
+                </Box>
               </Box>
               {refused === '' ? null : <Text color="error">{refused}</Text>}
             </Box>
@@ -888,10 +913,10 @@ export const register: Register = (on, options) => {
     const now = settings(Object.fromEntries(list.map(one => [one.field, one.row.value])))
     const lines = previewLines(now)
     // The title rule and a blank line under it take two rows.
-    const room = SECTION_ROWS - 2
+    const room = sectionRows - 2
     const shownLines = lines.length > room ? [...lines.slice(0, room - 1), { text: `… ${lines.length - room + 1} more lines`, dim: true }] : lines
     const preview = (
-      <Box flexDirection="column" height={SECTION_ROWS} overflow="hidden" flexShrink={0}>
+      <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
         <Text dimColor>
           {rule(`Preview: sample suggestions with your settings${now.optionMode === 'up-to' ? ' (up-to often shows fewer)' : ''}`)}
         </Text>

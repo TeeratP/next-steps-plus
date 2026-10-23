@@ -143,6 +143,8 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 - A preview at the bottom of the pane shows the suggestion list as your settings draw it.
 - The three parts (settings, the selected setting, the preview) have the same fixed height; a preview too long for its part ends with "… n more lines".
 - While you type, the box is framed in the accent colour with a bold "▶ Type …" line over it, and the row's `editing below ↓` is in the same colour, so the cursor is easy to find.
+- The three parts share the pane's height equally, whatever room it has; in a short pane the settings list scrolls with the selection (`↑ n more` / `↓ n more`).
+- The setting's name is outside the box, to its left; the box holds only the value.
 
 ### v0.1.16
 
