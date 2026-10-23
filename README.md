@@ -42,10 +42,10 @@ If you have the original next-steps installed, turn it off (`/plugin` → next-s
 
 ## Picking several suggestions
 
-Set `selectMode` to `multi`. Each number key then ticks or unticks a suggestion, and `9` puts all the ticked ones in the prompt box together:
+Set `selectMode` to `multi`. Each number key then ticks or unticks a suggestion, and `9` (or Tab, see below) puts all the ticked ones in the prompt box together:
 
 ```
-next: type numbers to pick, 9 to use them, 0 to dismiss
+next: type numbers to pick, Tab or 9 to use them, 0 to dismiss
   1: [2] Run the tests and fix failures
   2: [ ] Update the README for the new option
   3: [1] Commit the change
@@ -61,7 +61,8 @@ Do these in order:
 2. Run the unit tests in tests/ and fix any failure, then re-run until green.
 ```
 
-- `8` ticks every suggestion except slash commands; press it again to untick them. (That's why there are at most 7 suggestions.)
+- `8` ticks every suggestion except slash commands (or, with `eightPicks: recommended`, the ones marked (Recommended)); press it again to untick them. (That's why there are at most 7 suggestions.)
+- **Tab** works like `9`: the faint ghost text in the empty prompt box always follows your ticks (the recommended suggestion with nothing ticked, that one with one ticked, the numbered draft with several), so Claude Code's own Tab takes exactly that. It needs ghost text to show (`ghostText` on, and Claude Code's `promptSuggestionEnabled` on); otherwise the list says only `9`.
 - A slash command (`/code-review high`) can only be used on its own, because anything after it would be read as its arguments. Ticking it unticks the others, and ticking anything else unticks it.
 
 ## Settings
@@ -122,6 +123,7 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | Setting | Default | What it does |
 | --- | --- | --- |
 | `selectMode` | `single`\* | `single`: a number key puts that one suggestion in the prompt box. `multi`: pick several, as [above](#picking-several-suggestions) |
+| `eightPicks` | `all` | `multi` only: what `8` picks. `all`: every suggestion except slash commands. `recommended`: the suggestions marked (Recommended) |
 | `maxSuggestions` | `3`\* | The most suggestions to show, 1–7 (in multi mode `8` picks all, `9` uses the picks, `0` dismisses) |
 | `optionMode` | `up-to` | How many options to list. `up-to`: only the next steps that clearly matter, from none up to `maxSuggestions`, with no filler; you may see just one. `exactly`: always fill every slot |
 | `labelChars` | `48`\* | Longest suggestion label, 20–300 characters |
@@ -142,6 +144,11 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.19
+
+- New `eightPicks` setting: in multi mode, `8` picks every suggestion except slash commands (`all`, the default) or the ones marked (Recommended) (`recommended`).
+- Tab uses your picks like `9`: the ghost text in the empty prompt box follows what you tick, so Claude Code's Tab takes it. The list shows `Tab or 9` / `Tab/9: use selected` when ghost text can show, else just `9`.
 
 ### v0.1.18
 

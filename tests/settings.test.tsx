@@ -248,7 +248,7 @@ test('the preview follows multi-select and display settings', async ($, on) => {
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /^ {2}3: / }))?.text).toBe('  3: [ ] /code-review high (runs alone)')
   expect((await ui.find({ type: 'Text', text: /^ {2}1: / }))?.text).toBe('  1: [ ] Run the unit tests in tests/ and fix any failure.')
-  expect((await ui.find({ type: 'Text', text: /use selected/ }))?.text).toBe('  8: all except commands   9: use selected   0: dismiss')
+  expect((await ui.find({ type: 'Text', text: /use selected/ }))?.text).toBe('  8: all except commands   Tab/9: use selected   0: dismiss')
   ROWS.splice(0, ROWS.length, ...saved)
   await ui.unmount()
 })

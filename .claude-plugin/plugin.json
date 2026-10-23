@@ -1,6 +1,6 @@
 {
   "name": "next-steps-plus",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "description": "Suggests next prompts above the input after each turn. Same defaults as next-steps, plus settings for more and longer suggestions, previews, and multi-select.",
   "author": {
     "name": "Teerat Pipitcharulerd"
@@ -25,6 +25,17 @@
       ],
       "required": false,
       "default": "single"
+    },
+    "eightPicks": {
+      "type": "string",
+      "title": "Key 8 picks (default: all)",
+      "description": "In multi mode, what the 8 key picks. all: every suggestion except slash commands. recommended: the suggestions marked (Recommended). Pressing 8 again clears the picks.",
+      "options": [
+        "all",
+        "recommended"
+      ],
+      "required": false,
+      "default": "all"
     },
     "maxSuggestions": {
       "type": "number",
