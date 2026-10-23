@@ -64,7 +64,7 @@ The settings pane lists every setting on the left and shows the selected one in 
 
 ```
   Selection mode          single   │ Selection mode
-▸ Number of suggestions   3        │ How many suggestions to show (1-8).
+▸ Number of suggestions   3        │ Show up to this many suggestions (1-8).
   Label length            48       │
   Prompt length           600      │ Now: 3
   Show prompt preview     off      │ Default: 3 (same as the original next-steps)
