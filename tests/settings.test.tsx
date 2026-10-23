@@ -303,14 +303,15 @@ test('each section opens with a plain line, its title on the row under it', asyn
   await ui.unmount()
 })
 
-test('the ghost text line says off when Claude Code turns prompt suggestions off', async ($, on) => {
+test('with Claude Code prompt suggestions off, the box shows the faint text it would show, and why it does not', async ($, on) => {
   settings(on)
   on('settings.read', () => ({ value: { promptSuggestionEnabled: false } }))
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /your prompt box/ }))?.text).toBe(
-    '  ↑ your prompt box: no ghost text (promptSuggestionEnabled is false in your Claude Code settings)',
+    "  ↑ your prompt box would show this faint text, but promptSuggestionEnabled is false in your Claude Code settings, so it doesn't",
   )
-  expect(await ui.find({ type: 'Text', text: /Commit the change with a short/ })).toBeUndefined()
+  // The sample faint text is still drawn, so the person sees what it would be.
+  expect((await ui.find({ type: 'Text', text: /^> / }))?.text).toBe('> Commit the change with a short message describing it.')
   await ui.unmount()
 })
 

@@ -382,7 +382,7 @@ const SAMPLES: readonly Suggestion[] = [
 type PreviewLine = { text: string; dim: boolean }
 // What the empty prompt box shows under the band: the faint ghost text, or
 // why there is none.
-type PreviewGhost = { text: string } | { off: string }
+type PreviewGhost = { text: string; blocked?: string } | { off: string }
 
 function previewLines(s: Settings, claudeSuggests: boolean): { lines: PreviewLine[]; ghost: PreviewGhost } {
   const multi = s.selectMode === 'multi'
@@ -412,7 +412,7 @@ function previewLines(s: Settings, claudeSuggests: boolean): { lines: PreviewLin
   const ghost: PreviewGhost = !s.ghostText
     ? { off: 'the Tab ghost text setting is off' }
     : !claudeSuggests
-      ? { off: 'promptSuggestionEnabled is false in your Claude Code settings' }
+      ? { text: top?.prompt ?? '', blocked: 'promptSuggestionEnabled is false in your Claude Code settings' }
       : { text: top?.prompt ?? '' }
   return { lines, ghost }
 }
@@ -817,106 +817,112 @@ export const register: Register = (on, options) => {
     // Top: every setting and its value; the one being typed says so, in colour.
     const rows = (
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
-        <Text dimColor>{line}</Text>
-        <Text bold>Settings</Text>
-        {scrolls ? <Text dimColor>{first > 0 ? `  ↑ ${first} more` : ' '}</Text> : null}
-        {inView.map(one => (
-          <Button
-            key={one.field}
-            plain
-            autoFocus={one.field === current.field ? true : undefined}
-            onPress={() => void change($, one)}
-          >
-            {`${one.field === current.field ? '▸ ' : '  '}${one.name.padEnd(nameWidth)}`}
-            {one.field === inBox ? (
-              <Text color="claude" bold>
-                {EDITING_MARK}
-              </Text>
-            ) : (
-              <Text dimColor>{clean(shown(one.row.value), LIST_VALUE_MAX)}</Text>
-            )}
-          </Button>
-        ))}
-        {scrolls ? (
-          <Text dimColor>{first + visible < list.length ? `  ↓ ${list.length - first - visible} more` : ' '}</Text>
-        ) : null}
+        {/* Lines keep their height; what does not fit is cut at the bottom. */}
+        <Box flexDirection="column" flexShrink={0}>
+          <Text dimColor>{line}</Text>
+          <Text bold>Settings</Text>
+          {scrolls ? <Text dimColor>{first > 0 ? `  ↑ ${first} more` : ' '}</Text> : null}
+          {inView.map(one => (
+            <Button
+              key={one.field}
+              plain
+              autoFocus={one.field === current.field ? true : undefined}
+              onPress={() => void change($, one)}
+            >
+              {`${one.field === current.field ? '▸ ' : '  '}${one.name.padEnd(nameWidth)}`}
+              {one.field === inBox ? (
+                <Text color="claude" bold>
+                  {EDITING_MARK}
+                </Text>
+              ) : (
+                <Text dimColor>{clean(shown(one.row.value), LIST_VALUE_MAX)}</Text>
+              )}
+            </Button>
+          ))}
+          {scrolls ? (
+            <Text dimColor>{first + visible < list.length ? `  ↓ ${list.length - first - visible} more` : ' '}</Text>
+          ) : null}
+        </Box>
       </Box>
     )
 
     // Middle: the selected setting, and where to change it.
     const details = (
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
-        <Text dimColor>{line}</Text>
-        {editingHere ? (
-          <Text color="claude" bold>
-            {current.name}
-          </Text>
-        ) : (
-          <Text bold>{current.name}</Text>
-        )}
-        <Text>{row.description ?? ''}</Text>
-        <Text>
-          Now: <Text bold>{shown(row.value)}</Text>
-          <Text dimColor>
-            {` · Default: ${current.fallback}${NEW_FIELDS.has(current.field) ? ' (new in next-steps-plus)' : ' (same as the original next-steps)'}`}
-          </Text>
-        </Text>
-        {/* Digits pick a choice right here: the ring never leaves the row. */}
-        {values.length === 0 ? null : (
-          <Box marginTop={1} flexDirection="row" flexWrap="wrap" columnGap={2}>
-            {values.map((value, index) => (
-              <Button
-                key={`pick-${String(value)}`}
-                plain
-                hotkey={String(index + 1)}
-                label={`${String(value)}${value === row.value ? ' ✓' : ''}`}
-                onPress={() => void pick($, current, value)}
-              />
-            ))}
-          </Box>
-        )}
-        <Box marginTop={1} flexDirection="column">
-          {(row.kind === 'text' || row.kind === 'number') && Input !== undefined && !row.isLocked ? (
-            <Box flexDirection="column">
-              {/* While typing, the box is framed in the accent colour with a
-                  bold line over it, so the cursor is easy to find. */}
-              {editingHere ? (
-                <Text color="claude" bold>{`▶ ${hint(current, true)}`}</Text>
-              ) : (
-                <Text dimColor>{hint(current, false)}</Text>
-              )}
-              {/* The setting's name sits outside, left of the box; the box
-                  holds only the value being typed. */}
-              <Box flexDirection="row" alignItems="center">
-                {editingHere ? (
-                  <Text color="claude" bold>{`${current.name}: `}</Text>
-                ) : (
-                  <Text>{`${current.name}: `}</Text>
-                )}
-                <Box
-                  borderStyle="round"
-                  borderColor={editingHere ? 'claude' : undefined}
-                  borderDimColor={editingHere ? undefined : true}
-                  paddingX={1}
-                  flexGrow={1}
-                >
-                <Input
-                  key={EDITOR}
-                  value={typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : ''}
-                  placeholder={
-                    row.kind === 'number'
-                      ? `a whole number, ${(RANGES[current.field] ?? [0, 0]).join('-')}`
-                      : 'text, or empty for none'
-                  }
-                  onSubmit={value => void submit($, current, value)}
-                />
-                </Box>
-              </Box>
-              {refused === '' ? null : <Text color="error">{refused}</Text>}
-            </Box>
+        {/* Lines keep their height; what does not fit is cut at the bottom. */}
+        <Box flexDirection="column" flexShrink={0}>
+          <Text dimColor>{line}</Text>
+          {editingHere ? (
+            <Text color="claude" bold>
+              {current.name}
+            </Text>
           ) : (
-            <Text dimColor>{hint(current, false)}</Text>
+            <Text bold>{current.name}</Text>
           )}
+          <Text>{row.description ?? ''}</Text>
+          <Text>
+            Now: <Text bold>{shown(row.value)}</Text>
+            <Text dimColor>
+              {` · Default: ${current.fallback}${NEW_FIELDS.has(current.field) ? ' (new in next-steps-plus)' : ' (same as the original next-steps)'}`}
+            </Text>
+          </Text>
+          {/* Digits pick a choice right here: the ring never leaves the row. */}
+          {values.length === 0 ? null : (
+            <Box marginTop={1} flexDirection="row" flexWrap="wrap" columnGap={2}>
+              {values.map((value, index) => (
+                <Button
+                  key={`pick-${String(value)}`}
+                  plain
+                  hotkey={String(index + 1)}
+                  label={`${String(value)}${value === row.value ? ' ✓' : ''}`}
+                  onPress={() => void pick($, current, value)}
+                />
+              ))}
+            </Box>
+          )}
+          <Box marginTop={1} flexDirection="column">
+            {(row.kind === 'text' || row.kind === 'number') && Input !== undefined && !row.isLocked ? (
+              <Box flexDirection="column">
+                {/* While typing, the box is framed in the accent colour with a
+                    bold line over it, so the cursor is easy to find. */}
+                {editingHere ? (
+                  <Text color="claude" bold>{`▶ ${hint(current, true)}`}</Text>
+                ) : (
+                  <Text dimColor>{hint(current, false)}</Text>
+                )}
+                {/* The setting's name sits outside, left of the box; the box
+                    holds only the value being typed. */}
+                <Box flexDirection="row" alignItems="center">
+                  {editingHere ? (
+                    <Text color="claude" bold>{`${current.name}: `}</Text>
+                  ) : (
+                    <Text>{`${current.name}: `}</Text>
+                  )}
+                  <Box
+                    borderStyle="round"
+                    borderColor={editingHere ? 'claude' : undefined}
+                    borderDimColor={editingHere ? undefined : true}
+                    paddingX={1}
+                    flexGrow={1}
+                  >
+                  <Input
+                    key={EDITOR}
+                    value={typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : ''}
+                    placeholder={
+                      row.kind === 'number'
+                        ? `a whole number, ${(RANGES[current.field] ?? [0, 0]).join('-')}`
+                        : 'text, or empty for none'
+                    }
+                    onSubmit={value => void submit($, current, value)}
+                  />
+                  </Box>
+                </Box>
+                {refused === '' ? null : <Text color="error">{refused}</Text>}
+              </Box>
+            ) : (
+              <Text dimColor>{hint(current, false)}</Text>
+            )}
+          </Box>
         </Box>
       </Box>
     )
@@ -932,38 +938,43 @@ export const register: Register = (on, options) => {
     const shownLines = lines.length > room ? [...lines.slice(0, room - 1), { text: `… ${lines.length - room + 1} more lines`, dim: true }] : lines
     const preview = (
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
-        <Text dimColor>{line}</Text>
-        <Text bold>
-          Preview{' '}
-          <Text dimColor>
-            {`(sample suggestions with your settings${now.optionMode === 'up-to' ? '; up-to often shows fewer' : ''})`}
-          </Text>
-        </Text>
-        <Text> </Text>
-        {shownLines.map((line, index) => (
-          <Text key={`preview-${index}`} dimColor={line.dim}>
-            {line.text}
-          </Text>
-        ))}
-        {/* The prompt box as a picture of its own, apart from the band, so
-            the ghost text reads as faint text in the box, not a choice. */}
-        <Box marginTop={1} borderStyle="round" borderDimColor paddingX={1}>
-          {'text' in ghost ? (
-            <Text>
-              {'> '}
-              <Text dimColor italic>
-                {ghost.text}
-              </Text>
+        {/* Lines keep their height; what does not fit is cut at the bottom. */}
+        <Box flexDirection="column" flexShrink={0}>
+          <Text dimColor>{line}</Text>
+          <Text bold>
+            Preview{' '}
+            <Text dimColor>
+              {`(sample suggestions with your settings${now.optionMode === 'up-to' ? '; up-to often shows fewer' : ''})`}
             </Text>
-          ) : (
-            <Text dimColor>{'> '}</Text>
-          )}
+          </Text>
+          <Text> </Text>
+          {shownLines.map((line, index) => (
+            <Text key={`preview-${index}`} dimColor={line.dim}>
+              {line.text}
+            </Text>
+          ))}
+          {/* The prompt box as a picture of its own, apart from the band, so
+              the ghost text reads as faint text in the box, not a choice. */}
+          <Box marginTop={1} borderStyle="round" borderDimColor paddingX={1}>
+            {'text' in ghost ? (
+              <Text>
+                {'> '}
+                <Text dimColor italic>
+                  {ghost.text}
+                </Text>
+              </Text>
+            ) : (
+              <Text dimColor>{'> '}</Text>
+            )}
+          </Box>
+          <Text dimColor>
+            {!('text' in ghost)
+              ? `  ↑ your prompt box: no ghost text (${ghost.off})`
+              : ghost.blocked === undefined
+                ? '  ↑ your prompt box: faint ghost text, Tab accepts it'
+                : `  ↑ your prompt box would show this faint text, but ${ghost.blocked}, so it doesn't`}
+          </Text>
         </Box>
-        <Text dimColor>
-          {'text' in ghost
-            ? '  ↑ your prompt box: faint ghost text, Tab accepts it'
-            : `  ↑ your prompt box: no ghost text (${ghost.off})`}
-        </Text>
       </Box>
     )
 
