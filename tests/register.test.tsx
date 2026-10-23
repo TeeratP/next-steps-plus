@@ -74,6 +74,7 @@ test('multi: a slash command clears the other picks', MULTI, async ($, on) => {
 test('default (single, as the original): a press fills that prompt at once', async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /type 1-3/ }))?.text).toContain('0 to dismiss')
   await ui.press({ key: 's1' })
   expect(filled).toEqual(['Commit the change with a short message.'])
   await ui.unmount()

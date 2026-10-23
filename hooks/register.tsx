@@ -314,7 +314,11 @@ export const register: Register = (on, options) => {
       <Box flexDirection="column">
         {below}
         <Box marginTop={1} />
-        <Text dimColor>{multi ? 'next: press numbers to pick, 9 to use them' : 'next:'}</Text>
+        <Text dimColor>
+          {multi
+            ? 'next: type numbers to pick, 9 to use them, 0 to dismiss'
+            : `next: type ${items.length === 1 ? '1' : `1-${items.length}`} to put one in the prompt box, 0 to dismiss`}
+        </Text>
         {items.map((item, index) => {
           const order = picked.indexOf(index)
           const mark = !multi ? '' : order === -1 ? '[ ] ' : `[${order + 1}] `

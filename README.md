@@ -3,7 +3,7 @@
 After each turn, suggests next prompts above the input box. Out of the box it behaves like the original [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps): three short suggestions, and a number key puts one in the prompt box.
 
 ```
-next:
+next: type 1-3 to put one in the prompt box, 0 to dismiss
   1: run the tests you just wrote
   2: do the same for the settings page
   3: /code-review high
@@ -19,7 +19,7 @@ What it adds is settings (see [Options](#options)): more and longer suggestions,
 Set `selectMode` to `multi` to pick several suggestions and have them written into the prompt box as one numbered draft:
 
 ```
-next: press numbers to pick, 9 to use them
+next: type numbers to pick, 9 to use them, 0 to dismiss
   1: [2] Run the tests and fix failures
   2: [ ] Update the README for the new option
   3: [1] Commit the change
@@ -95,6 +95,10 @@ Set them on the install screen or later in `/config` (or under `pluginConfigs` i
 | `minAnswerChars` | `80` | Skip suggestions after answers shorter than this |
 
 ## Changelog
+
+### v0.1.3
+
+- The list now starts with a hint saying which number keys to type.
 
 ### v0.1.2
 
