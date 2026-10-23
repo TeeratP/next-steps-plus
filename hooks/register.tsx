@@ -21,7 +21,7 @@
 // The fork is also handed the session's skills and slash commands
 // ($.command.list), so a suggestion can be "/skill arguments".
 // /next-steps-plus opens a settings pane: the plugin's /config rows on the
-// left, the selected one's full description, default and editor on the right.
+// list on top, the selected one's full description, default and values below it.
 
 import { atom, read, update } from 'claude-code'
 import type { CommandInfo, ConfigRow, EngineInterface, Register, RenderElement } from 'claude-code'
@@ -378,28 +378,64 @@ function shown(value: ConfigRow['value']): string {
   return Array.isArray(value) ? value.join(', ') : String(value)
 }
 
-function nextOption(row: ConfigRow): string | undefined {
-  const options = row.options ?? []
-  if (options.length === 0) return undefined
-  return options[(options.indexOf(String(row.value)) + 1) % options.length]
-}
-
 async function setValue($: EngineInterface, key: string, value: ConfigRow['value']): Promise<void> {
   const result = await $.config.set({ key, value })
   if ('deny' in result && typeof result.deny === 'string') $.ui.toast(`not changed: ${result.deny}`)
 }
 
-// Enter on a row: a toggle flips, a choice moves to its next option, and a
-// number or text row hands the keys to the editor on the right.
-async function change($: EngineInterface, setting: Setting): Promise<void> {
+// A change reloads this module (Claude Code reloads a plugin whose settings
+// changed), and the pane can come back without the keyboard. So after each
+// change the pane asks for the keys again and puts the ring back on the row.
+async function refocus($: EngineInterface, field: string): Promise<void> {
+  await openSettings($).catch(() => undefined)
+  await $.ui.focus({ requestId: PANE, key: field }).catch(() => undefined)
+}
+
+async function pick($: EngineInterface, setting: Setting, value: ConfigRow['value']): Promise<void> {
   await update($, selected, () => setting.field)
-  const { row } = setting
-  if (row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
-  if (row.kind === 'boolean') return setValue($, row.key, !row.value)
-  if (row.kind === 'choice') {
-    const option = nextOption(row)
-    return option === undefined ? undefined : setValue($, row.key, option)
+  if (setting.row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
+  await setValue($, setting.row.key, value)
+  await refocus($, setting.field)
+}
+
+// The values a digit picks on a number row, in order (1 picks the first);
+// nine at most, since the digits 1-9 pick them. Each is within its range.
+const PICKS: Readonly<Record<string, readonly number[]>> = {
+  maxSuggestions: [1, 2, 3, 4, 5, 6, 7, 8],
+  labelChars: [20, 30, 48, 60, 80, 120, 160, 200, 300],
+  promptChars: [200, 400, 600, 800, 1000, 1500, 2000, 3000, 4000],
+  minAnswerChars: [0, 20, 40, 80, 120, 200, 400, 800],
+}
+
+// What the digits pick for a row: a number's preset values or a choice's
+// options. A toggle (Enter flips it) and text (typed) have none.
+function quickPicks(setting: Setting): ConfigRow['value'][] {
+  if (setting.row.kind === 'number') return [...(PICKS[setting.field] ?? [])]
+  if (setting.row.kind === 'choice') return [...(setting.row.options ?? [])]
+  return []
+}
+
+// The value after the current one, wrapping, for Enter on a number or choice.
+function nextPick(setting: Setting): ConfigRow['value'] | undefined {
+  const values = quickPicks(setting)
+  if (values.length === 0) return undefined
+  const at = values.findIndex(value => value === setting.row.value)
+  if (at === -1 && typeof setting.row.value === 'number') {
+    const now = setting.row.value
+    return values.find(value => typeof value === 'number' && value > now) ?? values[0]
   }
+  return values[(at + 1) % values.length]
+}
+
+// Enter on a row: a toggle flips, a number or choice steps to its next
+// value, and a text row hands the keys to the box below it.
+async function change($: EngineInterface, setting: Setting): Promise<void> {
+  const { row } = setting
+  if (row.kind === 'boolean') return pick($, setting, !row.value)
+  const next = nextPick(setting)
+  if (next !== undefined) return pick($, setting, next)
+  await update($, selected, () => setting.field)
+  if (row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
   await $.ui.focus({ requestId: PANE, key: EDITOR }).catch(() => undefined)
 }
 
@@ -408,34 +444,17 @@ async function submit($: EngineInterface, setting: Setting, text: string): Promi
   if (row.kind === 'number') {
     const value = Number(text.trim())
     if (text.trim() === '' || !Number.isFinite(value)) return void $.ui.toast('type a number')
-    await setValue($, row.key, value)
-  } else {
-    await setValue($, row.key, text)
+    return pick($, setting, value)
   }
-  await $.ui.focus({ requestId: PANE, key: setting.field }).catch(() => undefined)
+  await pick($, setting, text)
 }
 
-// The values a number row's picker offers (each within the setting's range),
-// with the current value added when it is not among them.
-const PICKS: Readonly<Record<string, readonly number[]>> = {
-  maxSuggestions: [1, 2, 3, 4, 5, 6, 7, 8],
-  labelChars: [20, 30, 40, 48, 60, 80, 100, 120, 160, 200, 250, 300],
-  promptChars: [200, 300, 400, 600, 800, 1000, 1500, 2000, 3000, 4000],
-  minAnswerChars: [0, 20, 40, 80, 120, 200, 400, 800],
-}
-
-function picks(setting: Setting): string[] {
-  const values = PICKS[setting.field] ?? []
-  const now = typeof setting.row.value === 'number' ? setting.row.value : undefined
-  const all = now === undefined || values.includes(now) ? values : [...values, now].sort((a, b) => a - b)
-  return all.map(String)
-}
-
-function hint(row: ConfigRow): string {
+function hint(setting: Setting): string {
+  const { row } = setting
   if (row.isLocked) return 'Set by your organization.'
   if (row.kind === 'boolean') return `Enter: turn ${row.value === true ? 'off' : 'on'}`
-  if (row.kind === 'choice') return `Enter: switch to ${nextOption(row) ?? '-'}`
-  if (row.kind === 'number') return 'Enter: pick a value with ↑↓, then Enter'
+  const count = quickPicks(setting).length
+  if (count > 0) return `Type 1-${count} to pick, or Enter for the next value`
   return 'Enter: edit, then Enter again to save'
 }
 
@@ -652,7 +671,7 @@ export const register: Register = (on, options) => {
     return { text: isPlaced ? 'Opened next-steps-plus settings.' : 'Could not open the settings pane here; use /config.' }
   }).catch(() => ({ text: 'Could not open the settings pane; use /config.' }))
 
-  // The focus ring moving onto a row selects it, so the right side follows.
+  // The focus ring moving onto a row selects it, so the details below follow.
   on('ui.focus', { component: 'Pane', requestId: PANE }, async ($, e, next) => {
     const result = await next(e)
     const element = e.element
@@ -666,7 +685,6 @@ export const register: Register = (on, options) => {
     const table = $.ui.resolve(e)
     const { Box, Text, Button } = table
     const Input = 'Input' in table ? table.Input : undefined
-    const Select = 'Select' in table ? table.Select : undefined
     const list = await ownSettings($)
     const chosen = await read($, selected)
     const current = list.find(one => one.field === chosen) ?? list[0]
@@ -675,7 +693,7 @@ export const register: Register = (on, options) => {
     // beside the transcript is too narrow for two readable columns.
     const nameWidth = Math.max(...list.map(one => one.name.length)) + 2
     const { row } = current
-    const editable = row.kind === 'number' || row.kind === 'text'
+    const values = row.isLocked ? [] : quickPicks(current)
 
     const rows = (
       <Box flexDirection="column">
@@ -706,25 +724,31 @@ export const register: Register = (on, options) => {
             {`Default: ${current.fallback}${NEW_FIELDS.has(current.field) ? ' (new in next-steps-plus)' : ' (same as the original next-steps)'}`}
           </Text>
         </Box>
+        {/* Digits pick a value right here: the ring never leaves the row. */}
+        {values.length === 0 ? null : (
+          <Box marginTop={1} flexDirection="row" flexWrap="wrap" columnGap={2}>
+            {values.map((value, index) => (
+              <Button
+                key={`pick-${String(value)}`}
+                plain
+                hotkey={String(index + 1)}
+                label={`${String(value)}${value === row.value ? ' ✓' : ''}`}
+                onPress={() => void pick($, current, value)}
+              />
+            ))}
+          </Box>
+        )}
         <Box marginTop={1}>
-          {row.kind === 'number' && Select !== undefined && !row.isLocked && picks(current).length > 0 ? (
-            <Select
-              key={EDITOR}
-              label={`${current.name}: `}
-              options={picks(current).map(value => ({ value, label: value }))}
-              value={String(row.value)}
-              onSelect={value => void submit($, current, value)}
-            />
-          ) : editable && Input !== undefined && !row.isLocked ? (
+          {row.kind === 'text' && Input !== undefined && !row.isLocked ? (
             <Input
               key={EDITOR}
               label={current.name}
               value={typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : ''}
-              placeholder={row.kind === 'number' ? 'a number' : 'text, or empty for none'}
+              placeholder="text, or empty for none"
               onSubmit={value => void submit($, current, value)}
             />
           ) : (
-            <Text dimColor>{hint(row)}</Text>
+            <Text dimColor>{hint(current)}</Text>
           )}
         </Box>
       </Box>
@@ -739,7 +763,7 @@ export const register: Register = (on, options) => {
               a plugin cannot take it: say how the person hands it over. */}
           <Text dimColor>
             {e.props.isFocused
-              ? '↑↓ move · Enter change · Esc close'
+              ? `↑↓ move · Enter change${values.length > 0 ? ` · 1-${values.length} pick` : ''} · Esc close`
               : 'Keys go to the prompt now: press ctrl+x then Tab to use this pane (Esc gives them back)'}
           </Text>
         </Box>

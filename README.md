@@ -86,13 +86,15 @@ whether the list may be shorter.
 Now: 3
 Default: 3 (same as the original next-steps)
 
-Max suggestions: 3  (Enter, then ↑↓ to pick)
+1: 1  2: 2  3: 3 ✓  4: 4  5: 5  6: 6  7: 7  8: 8
 
-↑↓ move · Enter change · Esc close
+↑↓ move · Enter change · 1-8 pick · Esc close
 ```
 
 - ↑↓ (or Tab) moves between settings.
-- Enter turns a switch on or off, moves a choice to its next option, opens a list of values for a number (↑↓ to move, Enter to pick), or puts the cursor in the box below for text (type, then Enter to save).
+- A digit picks a value for the selected setting: with Max suggestions selected, `5` sets it to 5; other number and choice settings number their values (`1: 20  2: 30 …`). The current value has a ✓.
+- Enter turns a switch on or off, steps a number or choice to its next value, or, for text, puts the cursor in the box below (type, then Enter to save).
+- After each change the pane keeps the keyboard and stays on the same setting.
 - Esc closes the pane.
 - If the pane opens while the prompt box has text, your keys stay in the prompt (the pane says so at the bottom). Press ctrl+x, then Tab, to move them to the pane; Esc hands them back.
 
@@ -121,6 +123,11 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.15
+
+- Settings pane: digits pick a value for the selected setting (with Max suggestions selected, `5` sets 5), so numbers no longer need typing or a dropdown. Enter steps to the next value.
+- After a change the pane asks for the keyboard back and stays on the same setting. Before, a change could leave your keys in the main prompt until you reopened the pane.
 
 ### v0.1.14
 

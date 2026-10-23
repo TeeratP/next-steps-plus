@@ -33,11 +33,16 @@ const ROWS: ConfigRow[] = [
   row('extraInstructions', 'Extra instructions (default: none)', 'text', '', 'Your own preferences for the suggestions.'),
 ]
 
+// How often the pane asked to be opened (and given the keys) again.
+let reopened = 0
+
 // Stand in for the engine's settings; returns the changes the pane made.
 function settings(on: On): Array<[string, ConfigRow['value']]> {
   const sets: Array<[string, ConfigRow['value']]> = []
+  reopened = 0
   on('config.list', () => ({ value: ROWS }))
   on('config.set', (_, e) => (sets.push([e.key, e.value]), { value: e.value }))
+  on('ui.open', () => ((reopened += 1), { value: { isPlaced: true } }))
   on('ui.focus', () => ({}))
   return sets
 }
@@ -63,15 +68,32 @@ test('moving the focus selects that row', async ($, on) => {
   await ui.unmount()
 })
 
-test('Enter flips a switch and steps a choice', async ($, on) => {
+test('Enter flips a switch and steps a choice or number to its next value', async ($, on) => {
   const sets = settings(on)
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   await ui.press({ key: 'ghostText' })
   await ui.press({ key: 'selectMode' })
+  await ui.press({ key: 'labelChars' })
   expect(sets).toEqual([
     ['next-steps-plus.ghostText', false],
     ['next-steps-plus.selectMode', 'multi'],
+    ['next-steps-plus.labelChars', 60],
   ])
+  await ui.unmount()
+})
+
+test('a digit picks a value on the selected row, and the pane takes the keys back', async ($, on) => {
+  const sets = settings(on)
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 'pick-single' }))?.text).toBe('single ✓')
+  await ui.press({ key: 'pick-multi' })
+  await focus($, 'labelChars')
+  await ui.press({ key: 'pick-120' })
+  expect(sets).toEqual([
+    ['next-steps-plus.selectMode', 'multi'],
+    ['next-steps-plus.labelChars', 120],
+  ])
+  expect(reopened).toBe(2)
   await ui.unmount()
 })
 
@@ -92,7 +114,7 @@ test('without the keyboard, the pane says how to take it', async ($, on) => {
   expect((await ui.find({ type: 'Text', text: /ctrl\+x then Tab/ }))?.text).toContain('Esc gives them back')
   await ui.unmount()
   const focused = await $.ui.mount({ ...pane(96), surface: 'terminal' })
-  expect((await focused.find({ type: 'Text', text: /↑↓ move/ }))?.text).toBe('↑↓ move · Enter change · Esc close')
+  expect((await focused.find({ type: 'Text', text: /↑↓ move/ }))?.text).toBe('↑↓ move · Enter change · 1-2 pick · Esc close')
   await focused.unmount()
 })
 
@@ -100,15 +122,6 @@ test('a narrow pane stacks the description under the list', async ($, on) => {
   settings(on)
   const ui = await $.ui.mount({ ...pane(50), surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /one press fills one/ }))?.text).toBeDefined()
-  await ui.unmount()
-})
-
-test('a number row is picked from a list, no typing', async ($, on) => {
-  const sets = settings(on)
-  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
-  await ui.press({ key: 'labelChars' })
-  await ui.select({ key: 'edit', value: '80' })
-  expect(sets).toEqual([['next-steps-plus.labelChars', 80]])
   await ui.unmount()
 })
 
