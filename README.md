@@ -65,8 +65,8 @@ The settings pane lists every setting on the left and shows the selected one in 
 ```
   Selection mode          single   │ Max suggestions
 ▸ Max suggestions         3        │ Show at most this many suggestions (1-8).
-  Count                   up-to    │ See Count for whether the list may be shorter.
-  Label length            48       │
+  Option mode             up-to    │ Option mode decides whether the list may be
+  Label length            48       │ shorter.
   Prompt length           600      │ Now: 3
   Display                 label    │ Default: 3 (same as the original next-steps)
   …                                │
@@ -84,7 +84,7 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | --- | --- | --- |
 | `selectMode` | `single`\* | `single`: a number key puts that one suggestion in the prompt box. `multi`: pick several, as [above](#picking-several-suggestions) |
 | `maxSuggestions` | `3`\* | The most suggestions to show, 1–8 |
-| `countMode` | `up-to` | `up-to`: list only the next steps that clearly matter, from none up to `maxSuggestions`, with no filler. `exactly`: always fill every slot |
+| `optionMode` | `up-to` | How many options to list. `up-to`: only the next steps that clearly matter, from none up to `maxSuggestions`, with no filler; you may see just one. `exactly`: always fill every slot |
 | `labelChars` | `48`\* | Longest suggestion label, 20–300 characters |
 | `promptChars` | `600`\* | Longest suggested prompt, 200–4000 characters |
 | `display` | `label`\* | What each suggestion shows. `label`: a short label. `label+prompt`: the label, with its full prompt dimmed under it. `prompt`: the full prompt itself, so you see exactly what you pick (the model then writes no labels). Long prompts take more rows; any that don't fit are left off the end |
@@ -102,6 +102,10 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.8
+
+- `countMode` is renamed `optionMode` (shown as "Option mode"), and its description now explains both choices. If you set `countMode`, set `optionMode` instead.
 
 ### v0.1.7
 

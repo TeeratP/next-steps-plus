@@ -96,13 +96,13 @@ test('display label (the default) shows labels only', async ($, on) => {
   await ui.unmount()
 })
 
-test('count up-to (the default) asks for only what matters', async ($, on) => {
+test('option mode up-to (the default) asks for only what matters', async ($, on) => {
   await offer($, on)
   expect(asked).toContain('as up to 3 concrete prompts')
   expect(asked).toContain('never pad the list')
 })
 
-test('count exactly asks to fill every slot', { options: { countMode: 'exactly', maxSuggestions: 4 } }, async ($, on) => {
+test('option mode exactly asks to fill every slot', { options: { optionMode: 'exactly', maxSuggestions: 4 } }, async ($, on) => {
   await offer($, on)
   expect(asked).toContain('as exactly 4 concrete prompts')
   expect(asked).not.toContain('never pad')
