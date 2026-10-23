@@ -29,7 +29,7 @@ function row(field: string, label: string, kind: ConfigRow['kind'], value: Confi
 const ROWS: ConfigRow[] = [
   row('selectMode', 'Selection mode (default: single)', 'choice', 'single', 'single: one press fills one. multi: pick several.', ['multi', 'single']),
   row('labelChars', 'Label length (default: 48)', 'number', 48, 'Longest button label, in characters (20-300).'),
-  row('previewFlag', 'Show prompt preview (default: off)', 'boolean', false, 'Show each full prompt under its label.'),
+  row('ghostText', 'Tab ghost text (default: on)', 'boolean', true, 'Also offer the top suggestion as ghost text.'),
   row('extraInstructions', 'Extra instructions (default: none)', 'text', '', 'Your own preferences for the suggestions.'),
 ]
 
@@ -66,10 +66,10 @@ test('moving the focus selects that row', async ($, on) => {
 test('Enter flips a switch and steps a choice', async ($, on) => {
   const sets = settings(on)
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
-  await ui.press({ key: 'previewFlag' })
+  await ui.press({ key: 'ghostText' })
   await ui.press({ key: 'selectMode' })
   expect(sets).toEqual([
-    ['next-steps-plus.previewFlag', true],
+    ['next-steps-plus.ghostText', false],
     ['next-steps-plus.selectMode', 'multi'],
   ])
   await ui.unmount()

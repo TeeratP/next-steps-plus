@@ -1,6 +1,6 @@
 {
   "name": "next-steps-plus",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Suggests next prompts above the input after each turn. Same defaults as next-steps, plus settings for more and longer suggestions, previews, and multi-select.",
   "author": {
     "name": "Teerat Pipitcharulerd"
@@ -47,12 +47,17 @@
       "required": false,
       "default": 600
     },
-    "previewFlag": {
-      "type": "boolean",
-      "title": "Show prompt preview (default: off)",
-      "description": "Show each suggestion's full prompt dimmed under its label, so you can read it before you pick.",
+    "display": {
+      "type": "string",
+      "title": "Display (default: label)",
+      "description": "What each suggestion shows. label: a short label, as the original next-steps. label+prompt: the label, with its full prompt dimmed under it. prompt: the full prompt itself, so you see exactly what you pick; best with the standard or brief prompt style, since long prompts take many rows.",
+      "options": [
+        "label",
+        "label+prompt",
+        "prompt"
+      ],
       "required": false,
-      "default": false
+      "default": "label"
     },
     "promptStyle": {
       "type": "string",

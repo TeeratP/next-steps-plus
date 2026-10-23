@@ -10,7 +10,7 @@ next: type 1-3 to put one in the prompt box, 0 to dismiss
   0: dismiss
 ```
 
-Out of the box it works like the original [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) plugin. What it adds is [settings](#settings): more and longer suggestions, a preview of each full prompt, and picking several suggestions at once.
+Out of the box it works like the original [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) plugin. What it adds is [settings](#settings): more and longer suggestions, seeing each full prompt before you pick (or using it as the label), and picking several suggestions at once.
 
 ## Install
 
@@ -63,11 +63,11 @@ Change them on the install screen, in `/config`, or in the plugin's own settings
 The settings pane lists every setting on the left and shows the selected one in full on the right: its description, its current value, and its default.
 
 ```
-  Selection mode          single   │ Selection mode
+  Selection mode          single   │ Number of suggestions
 ▸ Number of suggestions   3        │ Show up to this many suggestions (1-8).
   Label length            48       │
   Prompt length           600      │ Now: 3
-  Show prompt preview     off      │ Default: 3 (same as the original next-steps)
+  Display                 label    │ Default: 3 (same as the original next-steps)
   …                                │
                                    │ [ Number of suggestions: 3 ]
 ↑↓ move · Enter change · Esc close
@@ -85,8 +85,8 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | `maxSuggestions` | `3`\* | How many suggestions to show, 1–8 |
 | `labelChars` | `48`\* | Longest suggestion label, 20–300 characters |
 | `promptChars` | `600`\* | Longest suggested prompt, 200–4000 characters |
-| `previewFlag` | off\* | Show each suggestion's full prompt, dimmed, under its label |
-| `promptStyle` | `standard`\* | How long the suggested prompts are. `standard`: no guidance. `detailed`: 1–3 sentences saying what to do, where, and what done looks like. `brief`: one short sentence |
+| `display` | `label`\* | What each suggestion shows. `label`: a short label. `label+prompt`: the label, with its full prompt dimmed under it. `prompt`: the full prompt itself, so you see exactly what you pick (the model then writes no labels). Long prompts take more rows; any that don't fit are left off the end |
+| `promptStyle` | `standard`\* | How long the suggested prompts are. `standard`: no guidance. `detailed`: 1–3 sentences saying what to do, where, and what done looks like. `brief`: one short sentence. With `display: prompt`, `standard` or `brief` fits more suggestions |
 | `combineHeader` | `Do these in order:` | `multi` only: the line above the list when several are picked; leave empty for none |
 | `extraInstructions` | none | Your own wishes for the suggestions, e.g. `write prompts in Thai` |
 | `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it |
@@ -100,6 +100,11 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.6
+
+- `previewFlag` is replaced by `display`: `label` (default), `label+prompt` (what `previewFlag: on` did), or the new `prompt`, which shows the full prompt as the label. If you had `previewFlag` on, set `display` to `label+prompt`.
+- Suggestions that would not fit the rows above the prompt box are left off the end, with a note saying how many.
 
 ### v0.1.5
 

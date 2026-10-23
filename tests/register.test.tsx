@@ -23,11 +23,17 @@ const REPLY = JSON.stringify([
 
 const MULTI = { options: { selectMode: 'multi' } } as const
 
+// What the fork was asked, by the last offer().
+let asked = ''
+
 // Stand in for the engine, finish one turn, and return what reached the box.
 async function offer($: Engine, on: On): Promise<string[]> {
   const filled: string[] = []
   on('command.list', () => ({ value: [{ name: 'code-review', description: 'review', source: 'plugin' }] }))
-  on('model.fork', () => ({ value: { isAnswered: true, text: REPLY, usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }))
+  on('model.fork', (_, e) => {
+    asked = e.prompt
+    return { value: { isAnswered: true, text: REPLY, usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }
+  })
   on('prompt.suggest', () => ({ isShown: true }))
   on('prompt.fill', (_, e) => (filled.push(e.text), { isFilled: true }))
   on('turn.complete', (_, e) => ({ text: e.answer }))
@@ -71,19 +77,43 @@ test('multi: a slash command clears the other picks', MULTI, async ($, on) => {
   await ui.unmount()
 })
 
-test('previewFlag shows each full prompt under its label', { options: { previewFlag: true } }, async ($, on) => {
+test('display label+prompt shows each full prompt under its label', { options: { display: 'label+prompt' } }, async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the tests')
   expect((await ui.find({ type: 'Text', text: /fix any failure/ }))?.text).toBe(
     'Run the unit tests in tests/ and fix any failure.',
   )
   await ui.unmount()
 })
 
-test('preview is off by default', async ($, on) => {
+test('display label (the default) shows labels only', async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the tests')
   expect(await ui.find({ type: 'Text', text: /fix any failure/ })).toBeUndefined()
+  expect(asked).toContain('"label"')
+  await ui.unmount()
+})
+
+test('display prompt shows the prompt itself and asks for no labels', { options: { display: 'prompt' } }, async ($, on) => {
+  const filled = await offer($, on)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the unit tests in tests/ and fix any failure.')
+  expect(asked).not.toContain('"label"')
+  await ui.press({ key: 's0' })
+  expect(filled).toEqual(['Run the unit tests in tests/ and fix any failure.'])
+  await ui.unmount()
+})
+
+test('suggestions that do not fit the band are left off', { options: { display: 'prompt' } }, async ($, on) => {
+  await offer($, on)
+  // Five rows: three for the hint and keys, two for suggestions of one row each.
+  const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, maxRows: 5 }, surface: 'terminal' })
+  expect(await ui.find({ type: 'Button', key: 's1' })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 's2' })).toBeUndefined()
+  expect((await ui.find({ type: 'Text', text: /did not fit/ }))?.text).toBe('1 more did not fit')
+  expect((await ui.find({ type: 'Text', text: /type 1-2/ }))?.text).toBeDefined()
   await ui.unmount()
 })
 
