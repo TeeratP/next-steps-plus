@@ -1,0 +1,6 @@
+{
+  "name": "next-steps-plus",
+  "description": "next-steps-plus: configurable, multi-select next-prompt suggestions for Claude Code.",
+  "owner": { "name": "Teerat Pipitcharulerd" },
+  "plugins": [{ "name": "next-steps-plus", "source": "./" }]
+}
