@@ -27,12 +27,12 @@ const MULTI = { options: { selectMode: 'multi' } } as const
 let asked = ''
 
 // Stand in for the engine, finish one turn, and return what reached the box.
-async function offer($: Engine, on: On): Promise<string[]> {
+async function offer($: Engine, on: On, reply = REPLY): Promise<string[]> {
   const filled: string[] = []
   on('command.list', () => ({ value: [{ name: 'code-review', description: 'review', source: 'plugin' }] }))
   on('model.fork', (_, e) => {
     asked = e.prompt
-    return { value: { isAnswered: true, text: REPLY, usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }
+    return { value: { isAnswered: true, text: reply, usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }
   })
   on('prompt.suggest', () => ({ isShown: true }))
   on('prompt.fill', (_, e) => (filled.push(e.text), { isFilled: true }))
@@ -106,6 +106,25 @@ test('option mode exactly asks to fill every slot', { options: { optionMode: 'ex
   await offer($, on)
   expect(asked).toContain('as exactly 4 concrete prompts')
   expect(asked).not.toContain('never pad')
+})
+
+test('a wait answer shows what to wait for, with nothing to pick', async ($, on) => {
+  await offer($, on, JSON.stringify([{ wait: 'Wait for the CI run to finish' }]))
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /nothing to do/ }))?.text).toBe('next: nothing to do now, wait for the CI run to finish')
+  expect(await ui.find({ type: 'Button', key: 's0' })).toBeUndefined()
+  expect(asked).toContain('"wait"')
+  await ui.press({ key: 'dismiss' })
+  expect(await ui.find({ type: 'Text', text: /nothing to do/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('prompts win over a wait in the same answer', async ($, on) => {
+  await offer($, on, JSON.stringify([{ wait: 'the deploy' }, { prompt: 'Check the deploy logs.' }]))
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Check the deploy logs.')
+  expect(await ui.find({ type: 'Text', text: /nothing to do/ })).toBeUndefined()
+  await ui.unmount()
 })
 
 test('display prompt shows the prompt itself and asks for no labels', { options: { display: 'prompt' } }, async ($, on) => {

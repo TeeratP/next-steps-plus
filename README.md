@@ -10,6 +10,12 @@ next: type 1-3 to put one in the prompt box, 0 to dismiss
   0: dismiss
 ```
 
+When the right move is to wait (CI, a build, a deploy, someone's reply) and there's nothing useful to type meanwhile, it says so instead, with nothing to pick:
+
+```
+next: nothing to do now, wait for the CI run to finish   0: dismiss
+```
+
 Out of the box it works like the original [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) plugin. What it adds is [settings](#settings): more and longer suggestions, seeing each full prompt before you pick (or using it as the label), and picking several suggestions at once.
 
 ## Install
@@ -102,6 +108,10 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.10
+
+- When the right move is to wait (CI, a build, a deploy, someone's reply), the list says what to wait for instead of suggesting prompts. If the model gives prompts too, the prompts are shown.
 
 ### v0.1.9
 

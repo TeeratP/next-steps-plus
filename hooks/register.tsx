@@ -13,7 +13,9 @@
 // suggestion, and 9 writes the picked ones, numbered in the order picked. A
 // slash-command suggestion runs alone (the rest of a prompt would become its
 // arguments), so picking one clears the others and picking another clears it.
-// 0 dismisses. The top
+// 0 dismisses. When the move now is to wait (CI, a build, someone's reply),
+// the fork may say so instead, and the band shows what to wait for, with no
+// prompt to pick. The top
 // suggestion is also offered as the composer's dim Tab-to-take ghost text
 // ($.prompt.suggest). Nothing is submitted by the plugin, so no origin framing.
 // The fork is also handed the session's skills and slash commands
@@ -30,6 +32,12 @@ type View =
   | { kind: 'hidden' }
   | { kind: 'loading'; turnId: string }
   | { kind: 'offer'; items: Suggestion[]; picked: number[] }
+  | { kind: 'wait'; text: string }
+
+// What the fork answered: prompts to offer, or that the move now is to wait.
+type Answer = { items: Suggestion[]; wait: string }
+
+const WAIT_MAX = 120
 
 // Every userConfig option, read once per load (a change in /config reloads).
 type Settings = {
@@ -137,7 +145,10 @@ function forkPrompt(skills: string, s: Settings): string {
     (s.selectMode === 'multi'
       ? 'Make the prompts distinct, so the user can pick several and have them done in order. '
       : '') +
-    'If the conversation is clearly finished or nothing useful comes to mind, return an empty list.\n\n' +
+    'If the conversation is clearly finished or nothing useful comes to mind, return an empty list. ' +
+    'If the right move now is to wait (a build, test run, CI, deploy, background task or another person ' +
+    'is still working) and there is nothing useful to type meanwhile, return instead exactly ' +
+    `[{"wait": "<what is still running, under ${WAIT_MAX} characters, e.g. the CI run to finish>"}].\n\n` +
     (s.extraInstructions === ''
       ? ''
       : `The user's own preferences for these suggestions: ${s.extraInstructions}\n\n`) +
@@ -175,20 +186,25 @@ function namesKnownCommand(prompt: string, known: ReadonlySet<string> | null): b
   return known.has(prompt.slice(1).split(' ', 1)[0] ?? '')
 }
 
-function parseSuggestions(reply: string, known: ReadonlySet<string> | null, s: Settings): Suggestion[] {
+// Prompts win over a wait: a wait is kept only when no prompt survives.
+function parseSuggestions(reply: string, known: ReadonlySet<string> | null, s: Settings): Answer {
+  const none: Answer = { items: [], wait: '' }
   const start = reply.indexOf('[')
   const end = reply.lastIndexOf(']')
-  if (start === -1 || end <= start) return []
+  if (start === -1 || end <= start) return none
   let parsed: unknown
   try {
     parsed = JSON.parse(reply.slice(start, end + 1))
   } catch {
-    return []
+    return none
   }
-  if (!Array.isArray(parsed)) return []
+  if (!Array.isArray(parsed)) return none
   const items: Suggestion[] = []
+  let wait = ''
   for (const entry of parsed) {
     if (typeof entry !== 'object' || entry === null) continue
+    const waitFor = (entry as { wait?: unknown }).wait
+    if (typeof waitFor === 'string' && wait === '') wait = clean(waitFor, WAIT_MAX).replace(/^wait(ing)? (for|on|until) /i, '')
     const label = (entry as { label?: unknown }).label
     const prompt = (entry as { prompt?: unknown }).prompt
     if (typeof prompt !== 'string') continue
@@ -200,7 +216,7 @@ function parseSuggestions(reply: string, known: ReadonlySet<string> | null, s: S
     items.push({ label: shownLabel, prompt: filled })
     if (items.length === s.maxSuggestions) break
   }
-  return items
+  return { items, wait: items.length === 0 ? wait : '' }
 }
 
 // Session-local view state; a hot reload resets it, which is fine.
@@ -432,20 +448,28 @@ export const register: Register = (on, options) => {
     const turnId = e.turnId
     show($, { kind: 'loading', turnId })
     void (async () => {
-      let items: Suggestion[] = []
+      let answer: Answer = { items: [], wait: '' }
       try {
         // Without the list the fork still suggests; slash prompts go unchecked.
         const commands = await $.command.list().catch(() => null)
         const known = commands === null ? null : new Set(commands.map(command => command.name))
         const skills = s.suggestSkills && commands !== null ? skillList(commands) : ''
         const reply = await $.model.fork({ prompt: forkPrompt(skills, s) })
-        items = reply.isAnswered ? parseSuggestions(reply.text, known, s) : []
+        if (reply.isAnswered) answer = parseSuggestions(reply.text, known, s)
       } catch (error) {
         $.ui.log(`fork failed: ${String(error)}`)
       }
       // A newer turn started (or another completed) while we waited: drop ours.
       if (view.kind !== 'loading' || view.turnId !== turnId) return
-      show($, items.length === 0 ? { kind: 'hidden' } : { kind: 'offer', items, picked: [] })
+      const { items, wait } = answer
+      show(
+        $,
+        items.length > 0
+          ? { kind: 'offer', items, picked: [] }
+          : wait !== ''
+            ? { kind: 'wait', text: wait }
+            : { kind: 'hidden' },
+      )
       if (s.ghostText && items[0] !== undefined) void $.prompt.suggest({ text: items[0].prompt }).catch(() => undefined)
     })()
     return result
@@ -462,6 +486,19 @@ export const register: Register = (on, options) => {
           {below}
           <Box marginTop={1}>
             <Text dimColor>next steps…</Text>
+          </Box>
+        </Box>
+      )
+    }
+
+    // Nothing to type now: say what to wait for, with no prompt to pick.
+    if (view.kind === 'wait') {
+      return (
+        <Box flexDirection="column">
+          {below}
+          <Box marginTop={1} flexDirection="row" gap={3}>
+            <Text dimColor>{`next: nothing to do now, wait for ${view.text}`}</Text>
+            <Button key="dismiss" hotkey="0" plain label="dismiss" onPress={() => show($, { kind: 'hidden' })} />
           </Box>
         </Box>
       )
