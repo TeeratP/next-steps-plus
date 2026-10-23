@@ -355,6 +355,9 @@ const LIST_VALUE_MAX = 24
 // editor and the keys line, so every row shows without scrolling.
 const PANE_EXTRA_ROWS = 16
 const selected = atom({ plugin: 'next-steps-plus', key: 'selected' } as const, 'selectMode')
+// Why the last typed value was refused, shown under the box (toasts wait
+// while the pane is open, so one would go unseen); empty when there is none.
+const refusal = atom({ plugin: 'next-steps-plus', key: 'refusal' } as const, '')
 
 type Setting = { field: string; name: string; fallback: string; row: ConfigRow }
 
@@ -398,54 +401,59 @@ async function pick($: EngineInterface, setting: Setting, value: ConfigRow['valu
   await refocus($, setting.field)
 }
 
-// The values a digit picks on a number row, in order (1 picks the first);
-// nine at most, since the digits 1-9 pick them. Each is within its range.
-const PICKS: Readonly<Record<string, readonly number[]>> = {
-  maxSuggestions: [1, 2, 3, 4, 5, 6, 7, 8],
-  labelChars: [20, 30, 48, 60, 80, 120, 160, 200, 300],
-  promptChars: [200, 400, 600, 800, 1000, 1500, 2000, 3000, 4000],
-  minAnswerChars: [0, 20, 40, 80, 120, 200, 400, 800],
+// The whole numbers each number setting takes, as its description says and
+// as settings() clamps them.
+const RANGES: Readonly<Record<string, readonly [number, number]>> = {
+  maxSuggestions: [1, 8],
+  labelChars: [20, 300],
+  promptChars: [200, 4000],
+  minAnswerChars: [0, 100_000],
 }
 
-// What the digits pick for a row: a number's preset values or a choice's
-// options. A toggle (Enter flips it) and text (typed) have none.
-function quickPicks(setting: Setting): ConfigRow['value'][] {
-  if (setting.row.kind === 'number') return [...(PICKS[setting.field] ?? [])]
-  if (setting.row.kind === 'choice') return [...(setting.row.options ?? [])]
-  return []
-}
-
-// The value after the current one, wrapping, for Enter on a number or choice.
-function nextPick(setting: Setting): ConfigRow['value'] | undefined {
-  const values = quickPicks(setting)
-  if (values.length === 0) return undefined
-  const at = values.findIndex(value => value === setting.row.value)
-  if (at === -1 && typeof setting.row.value === 'number') {
-    const now = setting.row.value
-    return values.find(value => typeof value === 'number' && value > now) ?? values[0]
+// A typed number, checked: the value to save, or why it is refused.
+function parseNumber(setting: Setting, text: string): { value: number } | { refused: string } {
+  const [low, high] = RANGES[setting.field] ?? [0, Number.MAX_SAFE_INTEGER]
+  const trimmed = text.trim()
+  const value = Number(trimmed)
+  if (!/^\d+$/.test(trimmed) || value < low || value > high) {
+    return { refused: `${setting.name} takes a whole number from ${low} to ${high}; "${clean(trimmed, 20)}" was not saved.` }
   }
-  return values[(at + 1) % values.length]
+  return { value }
 }
 
-// Enter on a row: a toggle flips, a number or choice steps to its next
-// value, and a text row hands the keys to the box below it.
+// What the digits pick on a choice row: its options, in order.
+function quickPicks(setting: Setting): ConfigRow['value'][] {
+  return setting.row.kind === 'choice' ? [...(setting.row.options ?? [])] : []
+}
+
+// Enter on a row: a toggle flips, a choice steps to its next option, and a
+// number or text row hands the keys to the box below it to type in.
 async function change($: EngineInterface, setting: Setting): Promise<void> {
   const { row } = setting
   if (row.kind === 'boolean') return pick($, setting, !row.value)
-  const next = nextPick(setting)
-  if (next !== undefined) return pick($, setting, next)
+  const options = quickPicks(setting)
+  if (options.length > 0) {
+    const at = options.findIndex(value => value === row.value)
+    return pick($, setting, options[(at + 1) % options.length] ?? options[0] ?? row.value)
+  }
   await update($, selected, () => setting.field)
   if (row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
   await $.ui.focus({ requestId: PANE, key: EDITOR }).catch(() => undefined)
 }
 
+// Enter in the box: a number is checked before it is saved; a refused one
+// stays in the box with the reason under it.
 async function submit($: EngineInterface, setting: Setting, text: string): Promise<void> {
-  const { row } = setting
-  if (row.kind === 'number') {
-    const value = Number(text.trim())
-    if (text.trim() === '' || !Number.isFinite(value)) return void $.ui.toast('type a number')
-    return pick($, setting, value)
+  if (setting.row.kind === 'number') {
+    const parsed = parseNumber(setting, text)
+    if ('refused' in parsed) {
+      await update($, refusal, () => parsed.refused)
+      return
+    }
+    await update($, refusal, () => '')
+    return pick($, setting, parsed.value)
   }
+  await update($, refusal, () => '')
   await pick($, setting, text)
 }
 
@@ -454,8 +462,8 @@ function hint(setting: Setting): string {
   if (row.isLocked) return 'Set by your organization.'
   if (row.kind === 'boolean') return `Enter: turn ${row.value === true ? 'off' : 'on'}`
   const count = quickPicks(setting).length
-  if (count > 0) return `Type 1-${count} to pick, or Enter for the next value`
-  return 'Enter: edit, then Enter again to save'
+  if (count > 0) return `Type 1-${count} to pick, or Enter for the next option`
+  return 'Enter: put the cursor in the box above, type, then Enter to save'
 }
 
 // Settings renamed in earlier versions. An update never touches saved
@@ -677,6 +685,7 @@ export const register: Register = (on, options) => {
     const element = e.element
     if (result.deny === undefined && element !== undefined && (FIELDS as readonly string[]).includes(element)) {
       await update($, selected, () => element)
+      await update($, refusal, () => '')
     }
     return result
   }).catch(($, e, next) => next(e))
@@ -687,6 +696,7 @@ export const register: Register = (on, options) => {
     const Input = 'Input' in table ? table.Input : undefined
     const list = await ownSettings($)
     const chosen = await read($, selected)
+    const refused = await read($, refusal)
     const current = list.find(one => one.field === chosen) ?? list[0]
     if (current === undefined) return <Text dimColor>No next-steps-plus settings found; try /config.</Text>
     // The list on top, the selected setting in full below it: a pane docked
@@ -739,14 +749,25 @@ export const register: Register = (on, options) => {
           </Box>
         )}
         <Box marginTop={1}>
-          {row.kind === 'text' && Input !== undefined && !row.isLocked ? (
-            <Input
-              key={EDITOR}
-              label={current.name}
-              value={typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : ''}
-              placeholder="text, or empty for none"
-              onSubmit={value => void submit($, current, value)}
-            />
+          {(row.kind === 'text' || row.kind === 'number') && Input !== undefined && !row.isLocked ? (
+            <Box flexDirection="column">
+              <Input
+                key={EDITOR}
+                label={current.name}
+                value={typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : ''}
+                placeholder={
+                  row.kind === 'number'
+                    ? `a whole number, ${(RANGES[current.field] ?? [0, 0]).join('-')}`
+                    : 'text, or empty for none'
+                }
+                onSubmit={value => void submit($, current, value)}
+              />
+              {refused === '' ? (
+                <Text dimColor>{hint(current)}</Text>
+              ) : (
+                <Text color="error">{refused}</Text>
+              )}
+            </Box>
           ) : (
             <Text dimColor>{hint(current)}</Text>
           )}

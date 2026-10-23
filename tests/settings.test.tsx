@@ -68,7 +68,7 @@ test('moving the focus selects that row', async ($, on) => {
   await ui.unmount()
 })
 
-test('Enter flips a switch and steps a choice or number to its next value', async ($, on) => {
+test('Enter flips a switch and steps a choice; a number opens its box', async ($, on) => {
   const sets = settings(on)
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   await ui.press({ key: 'ghostText' })
@@ -77,23 +77,44 @@ test('Enter flips a switch and steps a choice or number to its next value', asyn
   expect(sets).toEqual([
     ['next-steps-plus.ghostText', false],
     ['next-steps-plus.selectMode', 'multi'],
-    ['next-steps-plus.labelChars', 60],
   ])
+  expect(await ui.find({ type: 'Input', key: 'edit' })).toBeDefined()
   await ui.unmount()
 })
 
-test('a digit picks a value on the selected row, and the pane takes the keys back', async ($, on) => {
+test('a digit picks a choice, and the pane takes the keys back', async ($, on) => {
   const sets = settings(on)
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 'pick-single' }))?.text).toBe('single ✓')
   await ui.press({ key: 'pick-multi' })
+  expect(sets).toEqual([['next-steps-plus.selectMode', 'multi']])
+  expect(reopened).toBe(1)
+  await ui.unmount()
+})
+
+test('a number row has no list to pick from, only its box', async ($, on) => {
+  settings(on)
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   await focus($, 'labelChars')
-  await ui.press({ key: 'pick-120' })
-  expect(sets).toEqual([
-    ['next-steps-plus.selectMode', 'multi'],
-    ['next-steps-plus.labelChars', 120],
-  ])
-  expect(reopened).toBe(2)
+  expect(await ui.find({ type: 'Button', key: 'pick-60' })).toBeUndefined()
+  expect(await ui.find({ type: 'Input', key: 'edit' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a typed number is checked: refused ones are not saved and say why', async ($, on) => {
+  const sets = settings(on)
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  await ui.press({ key: 'labelChars' })
+  await ui.input({ key: 'edit', text: 'abc' })
+  expect((await ui.find({ type: 'Text', text: /was not saved/ }))?.text).toBe(
+    'Label length takes a whole number from 20 to 300; "abc" was not saved.',
+  )
+  await ui.input({ key: 'edit', text: '5000' })
+  await ui.input({ key: 'edit', text: '12.5' })
+  expect(sets).toEqual([])
+  await ui.input({ key: 'edit', text: ' 80 ' })
+  expect(sets).toEqual([['next-steps-plus.labelChars', 80]])
+  expect(await ui.find({ type: 'Text', text: /was not saved/ })).toBeUndefined()
   await ui.unmount()
 })
 

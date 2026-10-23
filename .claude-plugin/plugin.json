@@ -1,6 +1,6 @@
 {
   "name": "next-steps-plus",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "Suggests next prompts above the input after each turn. Same defaults as next-steps, plus settings for more and longer suggestions, previews, and multi-select.",
   "author": {
     "name": "Teerat Pipitcharulerd"

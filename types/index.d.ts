@@ -3,6 +3,8 @@ declare module 'claude-code' {
     'next-steps-plus': {
       // The settings pane's selected row: a userConfig field name.
       selected: string
+      // Why the last typed number was refused; empty when none was.
+      refusal: string
     }
   }
 }
