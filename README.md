@@ -45,16 +45,18 @@ Press `8` (**all**) to pick every suggestion except slash commands in one go, in
 
 This is a fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community), commit `f60f045`. The suggestion engine is the original's: forking the session with `$.model.fork`, listing skills, cleaning the text, and dropping unknown commands.
 
-The defaults are the original's. What you can change:
+What you can change:
 
-| | next-steps | next-steps-plus default | Can be set to |
-| --- | --- | --- | --- |
-| Suggestions | 3 | 3 | up to 8 |
-| Button label | 48 chars | 48 chars | up to 300 |
-| Prompt | 600 chars | 600 chars | up to 4000; `detailed` or `brief` style |
-| Full prompt visible before picking | no | no | full prompt dimmed under each label (`previewFlag`) |
-| Picking | one | one | several, plus pick all (`selectMode: multi`) |
-| Settings | 2 | 11 | |
+| | Default | Can be set to |
+| --- | --- | --- |
+| Suggestions | 3\* | up to 8 |
+| Button label | 48 chars\* | up to 300 |
+| Prompt | 600 chars\* | up to 4000; `detailed` or `brief` style |
+| Full prompt visible before picking | no\* | full prompt dimmed under each label (`previewFlag`) |
+| Picking | one\* | several, plus pick all (`selectMode: multi`) |
+| Settings | 11 | |
+
+\* Same as the original next-steps.
 
 ## Install
 
