@@ -98,7 +98,7 @@ next: type 1-3 to put one in the prompt box, 0 to dismiss
   2: Commit the change (Recommended)
   3: Review the diff
   0: dismiss
-prompt box (Tab takes it): Commit the change with a short message describing it.
+faint text in the empty prompt box (Tab accepts): Commit the change with a short message describing it.
 
 ↑↓ move · Enter change · Esc close
 ```
@@ -126,7 +126,7 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | `promptStyle` | `standard`\* | How long the suggested prompts are. `standard`: no guidance. `detailed`: 1–3 sentences saying what to do, where, and what done looks like. `brief`: one short sentence. With `display: prompt`, `standard` or `brief` fits more suggestions |
 | `combineHeader` | `Do these in order:` | `multi` only: the line above the list when several are picked; leave empty for none |
 | `extraInstructions` | none | Your own wishes for the suggestions, e.g. `write prompts in Thai` |
-| `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it |
+| `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it. It only shows while Claude Code's own `promptSuggestionEnabled` is on (the preview says when it isn't) |
 | `markRecommended` | on | Put (Recommended) after the step the model would most advise now, usually one; ghost text then offers that step |
 | `suggestSkills` | on\* | Let suggestions be your skills and slash commands |
 | `minAnswerChars` | `80`\* | No suggestions after answers shorter than this many characters |
@@ -149,6 +149,7 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 - The three parts share the pane's height equally, whatever room it has; in a short pane the settings list scrolls with the selection (`↑ n more` / `↓ n more`).
 - The setting's name is outside the box, to its left; the box holds only the value.
 - Each part opens with a plain line, its title (Settings, the setting's name, Preview) on the row under it.
+- The preview's last line shows what the empty prompt box shows: the faint ghost text, or that it's off and why (the `ghostText` setting, or Claude Code's `promptSuggestionEnabled` set to false).
 
 ### v0.1.16
 

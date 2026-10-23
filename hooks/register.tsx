@@ -375,8 +375,10 @@ const SAMPLES: readonly Suggestion[] = [
 ]
 
 // The suggestion band as these settings would draw it, line by line, as
-// plain text: a picture to read, with nothing to press.
-function previewLines(s: Settings): Array<{ text: string; dim: boolean }> {
+// plain text: a picture to read, with nothing to press. `claudeSuggests` is
+// Claude Code's own promptSuggestionEnabled: when it is false the faint
+// ghost text is not shown, whatever the plugin's ghostText says.
+function previewLines(s: Settings, claudeSuggests: boolean): Array<{ text: string; dim: boolean }> {
   const multi = s.selectMode === 'multi'
   const items = SAMPLES.slice(0, s.maxSuggestions).map(sample => {
     const prompt = clean(sample.prompt, s.promptChars)
@@ -400,9 +402,15 @@ function previewLines(s: Settings): Array<{ text: string; dim: boolean }> {
     }
   })
   lines.push({ text: multi ? '  8: all except commands   9: use selected   0: dismiss' : '  0: dismiss', dim: false })
-  if (s.ghostText) {
-    const top = items.find(item => item.recommended) ?? items[0]
-    if (top !== undefined) lines.push({ text: `prompt box (Tab takes it): ${top.prompt}`, dim: true })
+  // The last line says what the empty prompt box shows: the faint ghost
+  // text, or why there is none.
+  const top = items.find(item => item.recommended) ?? items[0]
+  if (!s.ghostText) {
+    lines.push({ text: 'ghost text: off (the Tab ghost text setting is off)', dim: true })
+  } else if (!claudeSuggests) {
+    lines.push({ text: 'ghost text: off (promptSuggestionEnabled is false in your Claude Code settings)', dim: true })
+  } else if (top !== undefined) {
+    lines.push({ text: `faint text in the empty prompt box (Tab accepts): ${top.prompt}`, dim: true })
   }
   return lines
 }
@@ -914,7 +922,9 @@ export const register: Register = (on, options) => {
 
     // Bottom: the band as these settings draw it, cut to the section.
     const now = settings(Object.fromEntries(list.map(one => [one.field, one.row.value])))
-    const lines = previewLines(now)
+    // Claude Code's own switch for prompt-box suggestions; unset means on.
+    const claudeSuggests = (await $.settings.read({ key: 'promptSuggestionEnabled' }).catch(() => undefined)) !== false
+    const lines = previewLines(now, claudeSuggests)
     // The line, the title and a blank row under it take three rows.
     const room = sectionRows - 3
     const shownLines = lines.length > room ? [...lines.slice(0, room - 1), { text: `… ${lines.length - room + 1} more lines`, dim: true }] : lines

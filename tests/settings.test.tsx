@@ -235,8 +235,8 @@ test('the preview shows sample suggestions as your settings draw them', async ($
   expect((await ui.find({ type: 'Text', text: /^next: type 1-3/ }))?.text).toBeDefined()
   expect((await ui.find({ type: 'Text', text: /^ {2}2: / }))?.text).toBe('  2: Commit the change (Recommended)')
   expect(await ui.find({ type: 'Text', text: /^ {2}4: / })).toBeUndefined()
-  expect((await ui.find({ type: 'Text', text: /^prompt box/ }))?.text).toBe(
-    'prompt box (Tab takes it): Commit the change with a short message describing it.',
+  expect((await ui.find({ type: 'Text', text: /^faint text/ }))?.text).toBe(
+    'faint text in the empty prompt box (Tab accepts): Commit the change with a short message describing it.',
   )
   await ui.unmount()
 })
@@ -301,5 +301,26 @@ test('each section opens with a plain line, its title on the row under it', asyn
   expect((await ui.find({ type: 'Text', text: /^Preview / }))?.text).toBe(
     'Preview (sample suggestions with your settings; up-to often shows fewer)',
   )
+  await ui.unmount()
+})
+
+test('the ghost text line says off when Claude Code turns prompt suggestions off', async ($, on) => {
+  settings(on)
+  on('settings.read', () => ({ value: { promptSuggestionEnabled: false } }))
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /^ghost text/ }))?.text).toBe(
+    'ghost text: off (promptSuggestionEnabled is false in your Claude Code settings)',
+  )
+  expect(await ui.find({ type: 'Text', text: /^faint text/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test("the ghost text line says off when the plugin's ghostText is off", async ($, on) => {
+  settings(on)
+  const saved = [...ROWS]
+  ROWS[2] = row('ghostText', 'Tab ghost text (default: on)', 'boolean', false, '')
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /^ghost text/ }))?.text).toBe('ghost text: off (the Tab ghost text setting is off)')
+  ROWS.splice(0, ROWS.length, ...saved)
   await ui.unmount()
 })
