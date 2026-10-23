@@ -1,6 +1,9 @@
 # Changelog
 
-### v0.1.22 (not released yet)
+### v0.2.0
+
+The first stable release: setting names are fixed from here on.
+
 
 - Works sensibly on every surface: the settings pane uses click or tap wording outside the terminal, mobile gets − and + buttons for numbers (it has no text box), and text settings on mobile point to `/config`. The suggestion list and the preview say "click" on the desktop app.
 - Separator lines in the settings pane never wrap, whatever the font.
