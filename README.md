@@ -36,6 +36,8 @@ claude plugin install next-steps-plus --marketplace TeeratP/next-steps-plus
 
 In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `TeeratP/next-steps-plus`, then Add plugin.
 
+To update later without restarting: run `claude plugin marketplace update next-steps-plus && claude plugin update next-steps-plus@next-steps-plus`, then `/reload-plugins`. Updates keep your settings, and a setting saved under an older name is carried over to its new name (it never replaces a value you already set).
+
 If you have the original next-steps installed, turn it off (`/plugin` → next-steps → Disable), or you will see two suggestion lists.
 
 ## Picking several suggestions
@@ -117,6 +119,10 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.13
+
+- Settings saved under an old name (`countMode`, `previewFlag`, `previewChars`) are carried to their new name (`optionMode`, `display`) when the plugin loads, unless you already set the new one.
 
 ### v0.1.12
 

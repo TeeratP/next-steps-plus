@@ -119,3 +119,30 @@ test('a turn declares /next-steps-plus when the session start was missed', async
   await $.turn.start({ text: 'again', turnId: 't2' })
   expect(declared).toEqual(['next-steps-plus'])
 })
+
+// A turn with these saved options; returns what the plugin carried over.
+async function carriedFrom($: Engine, on: On, options: Record<string, unknown>) {
+  const sets = settings(on)
+  on('settings.read', () => ({ value: { pluginConfigs: { 'next-steps-plus@next-steps-plus': { options } } } }))
+  on('command.register', (_, e) => ({ value: { command: e.name } }))
+  on('turn.start', (_, e) => ({ turnId: e.turnId }))
+  ROWS.push(row('optionMode', 'Option mode (default: up-to)', 'choice', 'up-to', '', ['up-to', 'exactly']))
+  ROWS.push(row('display', 'Display (default: label)', 'choice', 'label', '', ['label', 'label+prompt', 'prompt']))
+  await $.turn.start({ text: 'hi', turnId: 't1' })
+  await $.turn.start({ text: 'again', turnId: 't2' })
+  ROWS.splice(-2)
+  return sets
+}
+
+test('a value saved under an old name is carried to the new one, once', async ($, on) => {
+  const sets = await carriedFrom($, on, { countMode: 'exactly', previewFlag: true, maxSuggestions: 5 })
+  expect(sets).toEqual([
+    ['next-steps-plus.optionMode', 'exactly'],
+    ['next-steps-plus.display', 'label+prompt'],
+  ])
+})
+
+test('a value already saved under the new name is never overwritten', async ($, on) => {
+  const sets = await carriedFrom($, on, { countMode: 'exactly', optionMode: 'up-to', previewFlag: true, display: 'prompt' })
+  expect(sets).toEqual([])
+})

@@ -427,6 +427,37 @@ function hint(row: ConfigRow): string {
   return 'Enter: edit, then Enter again to save'
 }
 
+// Settings renamed in earlier versions. An update never touches saved
+// settings, but a value saved under an old name is no longer passed in, so
+// it is carried to the new name once per load, and only while the new name
+// holds no saved value of its own.
+const RENAMED: ReadonlyArray<{ from: string; to: string; carry: (value: unknown) => string | undefined }> = [
+  { from: 'countMode', to: 'optionMode', carry: v => (v === 'up-to' || v === 'exactly' ? v : undefined) },
+  { from: 'previewFlag', to: 'display', carry: v => (v === true ? 'label+prompt' : undefined) },
+  { from: 'previewChars', to: 'display', carry: v => (typeof v === 'number' && v > 0 ? 'label+prompt' : undefined) },
+]
+let carried = false
+
+async function carryRenamed($: EngineInterface): Promise<void> {
+  if (carried) return
+  carried = true
+  const configs = await $.settings.read({ key: 'pluginConfigs' })
+  if (typeof configs !== 'object' || configs === null) return
+  const entry = Object.entries(configs).find(([name]) => name.startsWith('next-steps-plus'))?.[1]
+  const saved = (entry as { options?: Record<string, unknown> } | undefined)?.options
+  if (saved === undefined) return
+  const rows = await $.config.list()
+  const done = new Set<string>()
+  for (const { from, to, carry } of RENAMED) {
+    if (!(from in saved) || to in saved || done.has(to)) continue
+    const value = carry(saved[from])
+    const row = rows.find(r => r.key.startsWith('next-steps-plus') && fieldOf(r) === to)
+    if (value === undefined || row === undefined) continue
+    done.add(to)
+    await setValue($, row.key, value)
+  }
+}
+
 // The command is declared at session start, and again at the first turn
 // after this module loads mid-session (an update and /reload-plugins), which
 // sees no session.start. Declaring it again only replaces it.
@@ -460,6 +491,7 @@ export const register: Register = (on, options) => {
   on('turn.start', async ($, e, next) => {
     if (view.kind !== 'hidden') show($, { kind: 'hidden' })
     await declareCommand($).catch(error => $.ui.log(`could not declare /${COMMAND}: ${String(error)}`))
+    await carryRenamed($).catch(error => $.ui.log(`could not carry renamed settings: ${String(error)}`))
     return next(e)
   })
 
@@ -597,6 +629,7 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     await declareCommand($).catch(error => $.ui.log(`could not declare /${COMMAND}: ${String(error)}`))
+    await carryRenamed($).catch(error => $.ui.log(`could not carry renamed settings: ${String(error)}`))
     return next(e)
   })
 
