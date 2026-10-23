@@ -21,7 +21,12 @@ const REPLY = JSON.stringify([
   { label: 'Review', prompt: '/code-review high' },
 ])
 
-const MULTI = { options: { selectMode: 'multi' } } as const
+// Most tests are written against the original next-steps' behaviour: one
+// press picks one, 3 suggestions, 8 selects all, the old header. They say
+// so here, so a change of the plugin's defaults does not change them.
+const BASE = { selectMode: 'single', maxSuggestions: 3, eightPicks: 'all', combineHeader: 'Do these in order:' } as const
+const BASELINE = { options: BASE } as const
+const MULTI = { options: { ...BASE, selectMode: 'multi' } } as const
 
 // What the fork was asked, and the ghost text offered, by the last offer().
 let asked = ''
@@ -78,7 +83,7 @@ test('multi: a slash command clears the other picks', MULTI, async ($, on) => {
   await ui.unmount()
 })
 
-test('display label+prompt shows each full prompt under its label', { options: { display: 'label+prompt' } }, async ($, on) => {
+test('display label+prompt shows each full prompt under its label', { options: { ...BASE, display: 'label+prompt' } }, async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the tests')
@@ -88,7 +93,7 @@ test('display label+prompt shows each full prompt under its label', { options: {
   await ui.unmount()
 })
 
-test('display label (the default) shows labels only', async ($, on) => {
+test('display label (the default) shows labels only', BASELINE, async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the tests')
@@ -97,19 +102,19 @@ test('display label (the default) shows labels only', async ($, on) => {
   await ui.unmount()
 })
 
-test('option mode up-to (the default) asks for only what matters', async ($, on) => {
+test('option mode up-to (the default) asks for only what matters', BASELINE, async ($, on) => {
   await offer($, on)
   expect(asked).toContain('as up to 3 concrete prompts')
   expect(asked).toContain('never pad the list')
 })
 
-test('option mode exactly asks to fill every slot', { options: { optionMode: 'exactly', maxSuggestions: 4 } }, async ($, on) => {
+test('option mode exactly asks to fill every slot', { options: { ...BASE, optionMode: 'exactly', maxSuggestions: 4 } }, async ($, on) => {
   await offer($, on)
   expect(asked).toContain('as exactly 4 concrete prompts')
   expect(asked).not.toContain('never pad')
 })
 
-test('a wait answer shows what to wait for, with nothing to pick', async ($, on) => {
+test('a wait answer shows what to wait for, with nothing to pick', BASELINE, async ($, on) => {
   await offer($, on, JSON.stringify([{ wait: 'Wait for the CI run to finish' }]))
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /nothing to do/ }))?.text).toBe('next: nothing to do now, wait for the CI run to finish')
@@ -120,7 +125,7 @@ test('a wait answer shows what to wait for, with nothing to pick', async ($, on)
   await ui.unmount()
 })
 
-test('prompts win over a wait in the same answer', async ($, on) => {
+test('prompts win over a wait in the same answer', BASELINE, async ($, on) => {
   await offer($, on, JSON.stringify([{ wait: 'the deploy' }, { prompt: 'Check the deploy logs.' }]))
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Check the deploy logs.')
@@ -133,7 +138,7 @@ const MARKED = JSON.stringify([
   { label: 'Commit', prompt: 'Commit the change.', recommended: true },
 ])
 
-test('a recommended step is marked, and ghost text offers it', async ($, on) => {
+test('a recommended step is marked, and ghost text offers it', BASELINE, async ($, on) => {
   await offer($, on, MARKED)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the tests')
@@ -143,7 +148,7 @@ test('a recommended step is marked, and ghost text offers it', async ($, on) => 
   await ui.unmount()
 })
 
-test('markRecommended off shows no mark and asks for none', { options: { markRecommended: false } }, async ($, on) => {
+test('markRecommended off shows no mark and asks for none', { options: { ...BASE, markRecommended: false } }, async ($, on) => {
   await offer($, on, MARKED)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 's1' }))?.text).toBe('Commit')
@@ -152,7 +157,7 @@ test('markRecommended off shows no mark and asks for none', { options: { markRec
   await ui.unmount()
 })
 
-test('display prompt shows the prompt itself and asks for no labels', { options: { display: 'prompt' } }, async ($, on) => {
+test('display prompt shows the prompt itself and asks for no labels', { options: { ...BASE, display: 'prompt' } }, async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the unit tests in tests/ and fix any failure.')
@@ -162,7 +167,7 @@ test('display prompt shows the prompt itself and asks for no labels', { options:
   await ui.unmount()
 })
 
-test('suggestions that do not fit the band are left off', { options: { display: 'prompt' } }, async ($, on) => {
+test('suggestions that do not fit the band are left off', { options: { ...BASE, display: 'prompt' } }, async ($, on) => {
   await offer($, on)
   // Five rows: three for the hint and keys, two for suggestions of one row each.
   const ui = await $.ui.mount({ ...BAND, props: { ...BAND.props, maxRows: 5 }, surface: 'terminal' })
@@ -173,7 +178,7 @@ test('suggestions that do not fit the band are left off', { options: { display: 
   await ui.unmount()
 })
 
-test('default (single, as the original): a press fills that prompt at once', async ($, on) => {
+test('single: a press fills that prompt at once', BASELINE, async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /type 1-3/ }))?.text).toContain('0 to dismiss')
@@ -204,7 +209,7 @@ test('multi: pressing all again clears the picks', MULTI, async ($, on) => {
   await ui.unmount()
 })
 
-test('8 is always the key for all but commands', { options: { selectMode: 'multi', maxSuggestions: 8 } }, async ($, on) => {
+test('8 is always the key for all but commands', { options: { ...BASE, selectMode: 'multi', maxSuggestions: 8 } }, async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await ui.find({ type: 'Button', key: 'all' })).toBeDefined()
@@ -212,7 +217,7 @@ test('8 is always the key for all but commands', { options: { selectMode: 'multi
   await ui.unmount()
 })
 
-test('eightPicks recommended: 8 picks the recommended suggestions', { options: { selectMode: 'multi', eightPicks: 'recommended' } }, async ($, on) => {
+test('eightPicks recommended: 8 picks the recommended suggestions', { options: { ...BASE, selectMode: 'multi', eightPicks: 'recommended' } }, async ($, on) => {
   const filled = await offer($, on, MARKED)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select recommended')
@@ -239,7 +244,7 @@ test('Tab takes the picks: the ghost text follows what is picked', MULTI, async 
   await ui.unmount()
 })
 
-test("the hint leaves Tab out when the plugin's ghost text is off", { options: { selectMode: 'multi', ghostText: false } }, async ($, on) => {
+test("the hint leaves Tab out when the plugin's ghost text is off", { options: { ...BASE, selectMode: 'multi', ghostText: false } }, async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: type numbers to pick, 9 to use them, 0 to dismiss')
@@ -248,7 +253,7 @@ test("the hint leaves Tab out when the plugin's ghost text is off", { options: {
   await ui.unmount()
 })
 
-test('8 reads "select all" when there is no command to leave out', { options: { selectMode: 'multi' } }, async ($, on) => {
+test('8 reads "select all" when there is no command to leave out', { options: { ...BASE, selectMode: 'multi' } }, async ($, on) => {
   await offer($, on, MARKED)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select all')
@@ -259,5 +264,26 @@ test('8 reads "select all except commands" when a command is listed', MULTI, asy
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select all except commands')
+  await ui.unmount()
+})
+
+test('the defaults: multi, 5 suggestions, 8 selects recommended, "Do these tasks:"', async ($, on) => {
+  await offer($, on, JSON.stringify([
+    { label: 'One', prompt: 'Do one.' },
+    { label: 'Two', prompt: 'Do two.', recommended: true },
+    { label: 'Three', prompt: 'Do three.' },
+    { label: 'Four', prompt: 'Do four.' },
+    { label: 'Five', prompt: 'Do five.' },
+    { label: 'Six', prompt: 'Do six.' },
+  ]))
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: type numbers to pick, Tab or 9 to use them, 0 to dismiss')
+  expect(await ui.find({ type: 'Button', key: 's4' })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 's5' })).toBeUndefined()
+  expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select recommended')
+  await ui.press({ key: 's0' })
+  await ui.press({ key: 's2' })
+  expect(ghost).toBe('Do these tasks:\n1. Do one.\n2. Do three.')
+  expect(asked).toContain('up to 5 concrete prompts')
   await ui.unmount()
 })

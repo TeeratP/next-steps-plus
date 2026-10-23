@@ -27,7 +27,7 @@ function row(field: string, label: string, kind: ConfigRow['kind'], value: Confi
 }
 
 const ROWS: ConfigRow[] = [
-  row('selectMode', 'Selection mode (default: single)', 'choice', 'single', 'single: one press fills one. multi: pick several.', ['multi', 'single']),
+  row('selectMode', 'Selection mode (default: multi)', 'choice', 'single', 'single: one press fills one. multi: pick several.', ['multi', 'single']),
   row('labelChars', 'Label length (default: 48)', 'number', 48, 'Longest button label, in characters (20-300).'),
   row('ghostText', 'Tab ghost text (default: on)', 'boolean', true, 'Also offer the top suggestion as ghost text.'),
   row('extraInstructions', 'Extra instructions (default: none)', 'text', '', 'Your own preferences for the suggestions.'),
@@ -57,7 +57,7 @@ test('shows the selected setting in full on the right', async ($, on) => {
   settings(on)
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /one press fills one/ }))?.text).toContain('multi: pick several.')
-  expect((await ui.find({ type: 'Text', text: /Default:/ }))?.text).toBe('Now: single · Default: single (same as the original next-steps)')
+  expect((await ui.find({ type: 'Text', text: /Default:/ }))?.text).toBe('Now: single · Default: multi (the original next-steps used single)')
   await ui.unmount()
 })
 
@@ -232,9 +232,9 @@ test('a refused number keeps the cursor in the box, still marked', async ($, on)
 test('the preview shows sample suggestions as your settings draw them', async ($, on) => {
   settings(on)
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
-  expect((await ui.find({ type: 'Text', text: /^next: type 1-3/ }))?.text).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /^next: type 1-5/ }))?.text).toBeDefined()
   expect((await ui.find({ type: 'Text', text: /^ {2}2: / }))?.text).toBe('  2: Commit the change (Recommended)')
-  expect(await ui.find({ type: 'Text', text: /^ {2}4: / })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^ {2}6: / })).toBeUndefined()
   expect((await ui.find({ type: 'Text', text: /^> / }))?.text).toBe('> Commit the change with a short message describing it.')
   expect((await ui.find({ type: 'Text', text: /your prompt box/ }))?.text).toBe('  ↑ your prompt box: faint ghost text, Tab accepts it')
   await ui.unmount()
@@ -248,7 +248,7 @@ test('the preview follows multi-select and display settings', async ($, on) => {
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /^ {2}3: / }))?.text).toBe('  3: [ ] /code-review high (runs alone)')
   expect((await ui.find({ type: 'Text', text: /^ {2}1: / }))?.text).toBe('  1: [ ] Run the unit tests in tests/ and fix any failure.')
-  expect((await ui.find({ type: 'Text', text: /use selected/ }))?.text).toBe('  8: select all except commands   Tab/9: use selected   0: dismiss')
+  expect((await ui.find({ type: 'Text', text: /use selected/ }))?.text).toBe('  8: select recommended   Tab/9: use selected   0: dismiss')
   ROWS.splice(0, ROWS.length, ...saved)
   await ui.unmount()
 })
@@ -333,7 +333,7 @@ test('max suggestions stops at 7: 8 is the key for all but commands', async ($, 
   // A saved 8 is read as 7: the preview stops at 7, and 8 stays "all".
   expect((await ui.find({ type: 'Text', text: /^ {2}7: / }))?.text).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^ {2}8: \[/ })).toBeUndefined()
-  expect((await ui.find({ type: 'Text', text: /^ {2}8: select all/ }))?.text).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /^ {2}8: select recommended/ }))?.text).toBeDefined()
   await ui.press({ key: 'maxSuggestions' })
   await ui.input({ key: 'edit', text: '8' })
   expect((await ui.find({ type: 'Text', text: /was not saved/ }))?.text).toBe(

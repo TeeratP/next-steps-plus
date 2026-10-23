@@ -1,6 +1,6 @@
 {
   "name": "next-steps-plus",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "description": "Suggests next prompts above the input after each turn. Same defaults as next-steps, plus settings for more and longer suggestions, previews, and multi-select.",
   "author": {
     "name": "Teerat Pipitcharulerd"
@@ -17,32 +17,32 @@
   "userConfig": {
     "selectMode": {
       "type": "string",
-      "title": "Selection mode (default: single)",
+      "title": "Selection mode (default: multi)",
       "description": "single: a number key puts that one suggestion in the prompt box (as the original next-steps). multi: number keys toggle suggestions, 8 picks all but commands, and 9 puts all picked ones in the prompt box.",
       "options": [
         "multi",
         "single"
       ],
       "required": false,
-      "default": "single"
+      "default": "multi"
     },
     "eightPicks": {
       "type": "string",
-      "title": "Key 8 picks (default: all)",
+      "title": "Key 8 picks (default: recommended)",
       "description": "In multi mode, what the 8 key picks. all: every suggestion except slash commands. recommended: the suggestions marked (Recommended). Pressing 8 again clears the picks.",
       "options": [
         "all",
         "recommended"
       ],
       "required": false,
-      "default": "all"
+      "default": "recommended"
     },
     "maxSuggestions": {
       "type": "number",
-      "title": "Max suggestions (default: 3)",
+      "title": "Max suggestions (default: 5)",
       "description": "Show at most this many suggestions (1-7; in multi mode 8 picks all, 9 uses the picks, 0 dismisses). Option mode decides whether the list may be shorter.",
       "required": false,
-      "default": 3
+      "default": 5
     },
     "optionMode": {
       "type": "string",
@@ -95,10 +95,10 @@
     },
     "combineHeader": {
       "type": "string",
-      "title": "Header for several picks (default: \"Do these in order:\")",
+      "title": "Header for several picks (default: \"Do these tasks:\")",
       "description": "Line put above the numbered list when several suggestions are picked. Empty for none.",
       "required": false,
-      "default": "Do these in order:"
+      "default": "Do these tasks:"
     },
     "extraInstructions": {
       "type": "string",

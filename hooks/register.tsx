@@ -329,18 +329,18 @@ function settings(options: Record<string, unknown> | undefined): Settings {
   return {
     minAnswerChars: bounded(options?.minAnswerChars, 80, 0, 100_000),
     suggestSkills: options?.suggestSkills !== false,
-    maxSuggestions: bounded(options?.maxSuggestions, 3, 1, SUGGESTIONS_LIMIT),
+    maxSuggestions: bounded(options?.maxSuggestions, 5, 1, SUGGESTIONS_LIMIT),
     optionMode: options?.optionMode === 'exactly' ? 'exactly' : 'up-to',
     labelChars: bounded(options?.labelChars, 48, 20, 300),
     promptChars,
     display:
       options?.display === 'label+prompt' || options?.display === 'prompt' ? options.display : 'label',
-    selectMode: options?.selectMode === 'multi' ? 'multi' : 'single',
+    selectMode: options?.selectMode === 'single' ? 'single' : 'multi',
     promptStyle: options?.promptStyle === 'detailed' || options?.promptStyle === 'brief' ? options.promptStyle : 'standard',
     ghostText: options?.ghostText !== false,
     markRecommended: options?.markRecommended !== false,
-    eightPicks: options?.eightPicks === 'recommended' ? 'recommended' : 'all',
-    combineHeader: text(options?.combineHeader, 'Do these in order:', 200),
+    eightPicks: options?.eightPicks === 'all' ? 'all' : 'recommended',
+    combineHeader: text(options?.combineHeader, 'Do these tasks:', 200),
     extraInstructions: text(options?.extraInstructions, '', EXTRA_INSTRUCTIONS_MAX),
   }
 }
@@ -389,6 +389,14 @@ const FIELDS = [
 ] as const
 // Fields whose default is the original next-steps' (the README's * marks).
 const NEW_FIELDS: ReadonlySet<string> = new Set(['optionMode', 'combineHeader', 'extraInstructions', 'markRecommended', 'eightPicks'])
+// Fields the original has whose default here differs: the original's value.
+const ORIGINAL_DEFAULTS: Readonly<Record<string, string>> = { selectMode: 'single', maxSuggestions: '3' }
+
+function defaultNote(field: string): string {
+  if (NEW_FIELDS.has(field)) return ' (new in next-steps-plus)'
+  const original = ORIGINAL_DEFAULTS[field]
+  return original === undefined ? ' (same as the original next-steps)' : ` (the original next-steps used ${original})`
+}
 const EDITOR = 'edit'
 // A list value longer than this is cut with an ellipsis; "Now:" shows it whole.
 const LIST_VALUE_MAX = 24
@@ -911,7 +919,7 @@ export const register: Register = (on, options) => {
           <Text>
             Now: <Text bold>{shown(row.value)}</Text>
             <Text dimColor>
-              {` · Default: ${current.fallback}${NEW_FIELDS.has(current.field) ? ' (new in next-steps-plus)' : ' (same as the original next-steps)'}`}
+              {` · Default: ${current.fallback}${defaultNote(current.field)}`}
             </Text>
           </Text>
           {/* Digits pick a choice right here: the ring never leaves the row. */}
