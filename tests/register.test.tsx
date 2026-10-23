@@ -21,6 +21,8 @@ const REPLY = JSON.stringify([
   { label: 'Review', prompt: '/code-review high' },
 ])
 
+const MULTI = { options: { selectMode: 'multi' } } as const
+
 // Stand in for the engine, finish one turn, and return what reached the box.
 async function offer($: Engine, on: On): Promise<string[]> {
   const filled: string[] = []
@@ -45,7 +47,7 @@ async function offer($: Engine, on: On): Promise<string[]> {
   return filled
 }
 
-test('multi: picks combine in pick order; 9 fills them', async ($, on) => {
+test('multi: picks combine in pick order; 9 fills them', MULTI, async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', text: /Run the tests/ }))?.text).toContain('[ ]')
@@ -59,7 +61,7 @@ test('multi: picks combine in pick order; 9 fills them', async ($, on) => {
   await ui.unmount()
 })
 
-test('multi: a slash command clears the other picks', async ($, on) => {
+test('multi: a slash command clears the other picks', MULTI, async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await ui.press({ key: 's0' })
@@ -69,7 +71,7 @@ test('multi: a slash command clears the other picks', async ($, on) => {
   await ui.unmount()
 })
 
-test('single: a press fills that prompt at once', { options: { selectMode: 'single' } }, async ($, on) => {
+test('default (single, as the original): a press fills that prompt at once', async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await ui.press({ key: 's1' })
@@ -77,7 +79,7 @@ test('single: a press fills that prompt at once', { options: { selectMode: 'sing
   await ui.unmount()
 })
 
-test('multi: 8 picks every prose suggestion, never a command', async ($, on) => {
+test('multi: 8 picks every prose suggestion, never a command', MULTI, async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await ui.press({ key: 's2' })
@@ -90,7 +92,7 @@ test('multi: 8 picks every prose suggestion, never a command', async ($, on) => 
   await ui.unmount()
 })
 
-test('multi: pressing all again clears the picks', async ($, on) => {
+test('multi: pressing all again clears the picks', MULTI, async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await ui.press({ key: 'all' })

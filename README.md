@@ -1,6 +1,22 @@
 # next-steps-plus
 
-After each turn, suggests next prompts above the input box. You can pick several and have them written into the prompt box as one numbered draft.
+After each turn, suggests next prompts above the input box. Out of the box it behaves like the original [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps): three short suggestions, and a number key puts one in the prompt box.
+
+```
+next:
+  1: run the tests you just wrote
+  2: do the same for the settings page
+  3: /code-review high
+  0: dismiss
+```
+
+Press `1`, `2` or `3` from an empty prompt box (or click one) and that prompt is written into the box as a draft. Edit it, then press Enter yourself. The plugin never submits a prompt on its own. `0` dismisses.
+
+What it adds is settings (see [Options](#options)): more and longer suggestions, a preview of each full prompt, and multi-select.
+
+## Multi-select
+
+Set `selectMode` to `multi` to pick several suggestions and have them written into the prompt box as one numbered draft:
 
 ```
 next: press numbers to pick, 9 to use them
@@ -19,9 +35,7 @@ Do these in order:
 2. Run the unit tests in tests/ and fix any failure, then re-run until green.
 ```
 
-Only the labels show by default. Set `previewChars` (e.g. `240`) to also see each full prompt dimmed under its label before you pick.
-
-Edit the draft, then press Enter yourself. The plugin never submits a prompt on its own. `0` dismisses.
+Edit the draft, then press Enter yourself.
 
 A slash-command suggestion runs alone, because the rest of a prompt would become its arguments. Picking one clears your other picks, and picking anything else clears it.
 
@@ -31,16 +45,16 @@ Press `8` (**all**) to pick every suggestion except slash commands in one go, in
 
 This is a fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community), commit `f60f045`. The suggestion engine is the original's: forking the session with `$.model.fork`, listing skills, cleaning the text, and dropping unknown commands.
 
-What changed:
+The defaults are the original's. What you can change:
 
-| | next-steps | next-steps-plus |
-| --- | --- | --- |
-| Suggestions | 3 | 5 by default, up to 8 |
-| Button label | 48 chars | 120 chars by default |
-| Prompt | 600 chars | 1500 chars by default, asked to be 1–3 sentences with scope |
-| Full prompt visible before picking | no | optional dim preview under each label (`previewChars`) |
-| Picking | one | several (or one, with `selectMode: single`) |
-| Settings | 2 | 11 |
+| | next-steps | next-steps-plus default | Can be set to |
+| --- | --- | --- | --- |
+| Suggestions | 3 | 3 | up to 8 |
+| Button label | 48 chars | 48 chars | up to 300 |
+| Prompt | 600 chars | 600 chars | up to 4000; `detailed` or `brief` style |
+| Full prompt visible before picking | no | no | dim preview under each label (`previewChars`) |
+| Picking | one | one | several, plus pick all (`selectMode: multi`) |
+| Settings | 2 | 11 | |
 
 ## Install
 
@@ -64,23 +78,27 @@ Turn off the original first if you have it, or both will draw a band: `/plugin` 
 
 ## Options
 
-Set them on the install screen or later in `/config` (or under `pluginConfigs` in settings). Both screens show each default at the end of the setting's title, e.g. "Label length (default: 120)", so you can leave anything you don't need to change. A change reloads the plugin.
+Set them on the install screen or later in `/config` (or under `pluginConfigs` in settings). Both screens show each default at the end of the setting's title, e.g. "Label length (default: 48)", so you can leave anything you don't need to change. A change reloads the plugin.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `selectMode` | `multi` | `multi`: number keys toggle, `9` fills all picks. `single`: a number key fills that one suggestion (the original behaviour) |
-| `maxSuggestions` | `5` | How many suggestions, 1–8 (`9` and `0` are taken; at 8, **all** is click-only) |
-| `labelChars` | `120` | Longest button label, 20–300 |
-| `promptChars` | `1500` | Longest suggested prompt, 200–4000 |
+| `selectMode` | `single` | `single`: a number key fills that one suggestion (the original behaviour). `multi`: number keys toggle, `8` picks all but commands, `9` fills all picks |
+| `maxSuggestions` | `3` | How many suggestions, 1–8 (`9` and `0` are taken; at 8, **all** is click-only) |
+| `labelChars` | `48` | Longest button label, 20–300 |
+| `promptChars` | `600` | Longest suggested prompt, 200–4000 |
 | `previewChars` | `0` | How much of each full prompt to preview under its label, e.g. `240`; `0` hides it |
-| `promptStyle` | `detailed` | `detailed`: 1–3 sentences with scope and what done looks like. `brief`: one short sentence |
-| `combineHeader` | `Do these in order:` | Line above the numbered list when several are picked; empty for none |
+| `promptStyle` | `standard` | `standard`: no length guidance, as the original. `detailed`: 1–3 sentences with scope and what done looks like. `brief`: one short sentence |
+| `combineHeader` | `Do these in order:` | In `multi` mode, the line above the numbered list when several are picked; empty for none |
 | `extraInstructions` | (empty) | Your own guidance for the suggester, e.g. `write prompts in Thai` |
 | `ghostText` | `true` | Also show the top suggestion as Tab-to-take ghost text in the box |
 | `suggestSkills` | `true` | Tell the suggester which skills and slash commands the session has |
 | `minAnswerChars` | `80` | Skip suggestions after answers shorter than this |
 
 ## Changelog
+
+### v0.1.2
+
+- Defaults now match the original next-steps: `single` select, 3 suggestions, 48-char labels, 600-char prompts, and a new `standard` prompt style (no length guidance). Turn on the rest in `/config`.
 
 ### v0.1.1
 

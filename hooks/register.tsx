@@ -33,7 +33,7 @@ type Settings = {
   promptChars: number
   previewChars: number
   selectMode: 'multi' | 'single'
-  promptStyle: 'detailed' | 'brief'
+  promptStyle: 'standard' | 'detailed' | 'brief'
   ghostText: boolean
   combineHeader: string
   extraInstructions: string
@@ -113,15 +113,17 @@ function forkPrompt(skills: string, s: Settings): string {
     'this conversation: name the file, test, PR, or follow-up they would actually type). Prefer the ' +
     'obvious next action (run the tests, commit, fix the thing you flagged, do the same for X) over generic ' +
     'ones. ' +
+    // standard asks for no length, as the original next-steps did.
     (s.promptStyle === 'detailed'
       ? 'Make each prompt complete enough to act on without re-asking: 1-3 sentences saying what to ' +
-        'do, the files or scope, and what done looks like. '
-      : 'Keep each prompt to one short sentence. ') +
+        `do, the files or scope, and what done looks like, under ${s.promptChars} characters. `
+      : s.promptStyle === 'brief'
+        ? 'Keep each prompt to one short sentence. '
+        : '') +
     (s.selectMode === 'multi'
       ? 'Make the prompts distinct, so the user can pick several and have them done in order. '
       : '') +
-    `Keep each prompt under ${s.promptChars} characters. If the conversation is clearly finished or ` +
-    'nothing useful comes to mind, return an empty list.\n\n' +
+    'If the conversation is clearly finished or nothing useful comes to mind, return an empty list.\n\n' +
     (s.extraInstructions === ''
       ? ''
       : `The user's own preferences for these suggestions: ${s.extraInstructions}\n\n`) +
@@ -237,18 +239,18 @@ function bounded(value: unknown, fallback: number, low: number, high: number): n
 // Options come from settings the person can edit by hand, so each is checked
 // and clamped here; text options are cleaned like any other untrusted text.
 function settings(options: Record<string, unknown> | undefined): Settings {
-  const promptChars = bounded(options?.promptChars, 1500, 200, 4000)
+  const promptChars = bounded(options?.promptChars, 600, 200, 4000)
   const text = (value: unknown, fallback: string, max: number) =>
     typeof value === 'string' ? clean(value, max) : fallback
   return {
     minAnswerChars: bounded(options?.minAnswerChars, 80, 0, 100_000),
     suggestSkills: options?.suggestSkills !== false,
-    maxSuggestions: bounded(options?.maxSuggestions, 5, 1, SUGGESTIONS_LIMIT),
-    labelChars: bounded(options?.labelChars, 120, 20, 300),
+    maxSuggestions: bounded(options?.maxSuggestions, 3, 1, SUGGESTIONS_LIMIT),
+    labelChars: bounded(options?.labelChars, 48, 20, 300),
     promptChars,
     previewChars: bounded(options?.previewChars, 0, 0, promptChars),
-    selectMode: options?.selectMode === 'single' ? 'single' : 'multi',
-    promptStyle: options?.promptStyle === 'brief' ? 'brief' : 'detailed',
+    selectMode: options?.selectMode === 'multi' ? 'multi' : 'single',
+    promptStyle: options?.promptStyle === 'detailed' || options?.promptStyle === 'brief' ? options.promptStyle : 'standard',
     ghostText: options?.ghostText !== false,
     combineHeader: text(options?.combineHeader, 'Do these in order:', 200),
     extraInstructions: text(options?.extraInstructions, '', EXTRA_INSTRUCTIONS_MAX),
