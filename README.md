@@ -20,6 +20,19 @@ next: nothing to do now, wait for the CI run to finish   0: dismiss
 
 It's a fork of the original [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) plugin, which offers 3 suggestions and puts one in the prompt box with a single press. To work exactly like that, set `selectMode` to `single` and `maxSuggestions` to `3`. Everything else is in the [settings](#settings): longer suggestions, seeing each full prompt before you pick (or using it as the label), and more.
 
+## Highlights
+
+- **Pick several, send one prompt.** Tick suggestions with the number keys; they're written as one numbered draft in the order you ticked them.
+- **Tab takes your picks.** The faint ghost text in the prompt box follows what you tick, so Claude Code's own Tab accepts exactly your selection: the recommended step with nothing ticked, that one with one ticked, the numbered draft with several.
+- **(Recommended) marks the best next step,** the way Claude's own multiple-choice questions do, and `8` selects the recommended ones in one press.
+- **Only what matters.** You get the steps that clearly matter, from none to 5, not a padded list. When the move is to wait for CI, a build or someone's reply, it says so instead of inventing work.
+- **Knows your skills and slash commands.** A suggestion can be `/skill arguments` for the skills and commands you actually have; one naming a command you don't have is dropped. A command is never mixed into a list with other steps, since anything after it would become its arguments.
+- **See what you'll get.** Show a short label, the label with its full prompt under it, or the full prompt itself as the label, so what you pick is exactly what lands in the box.
+- **A settings pane with a live preview.** `/next-steps-plus` lists every setting with its full description, checks numbers as you type them, and shows a preview of the suggestion list (and the ghost text) as your settings draw it.
+- **Cheap and out of the way.** Suggestions come from one quick question to a fork of your session, which reuses its prompt cache (about the cost of one short reply), asked after the answer is done so nothing waits on it. Suggestions that don't fit the space above the prompt box are left off, with a count.
+- **Safe.** Suggestion text is cleaned of terminal escape codes and invisible characters before it's shown or written, and the plugin never sends a prompt on its own.
+- **Your settings survive updates,** including settings that were renamed in a later version.
+
 ## Install
 
 At the prompt of a terminal session:
