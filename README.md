@@ -40,6 +40,18 @@ To update later without restarting: run `claude plugin marketplace update next-s
 
 If you have the original next-steps installed, turn it off (`/plugin` → next-steps → Disable), or you will see two suggestion lists.
 
+### Recommended: turn on Claude Code's prompt suggestions
+
+We encourage turning on Claude Code's own `promptSuggestionEnabled` setting. The plugin's ghost text (the faint suggestion in the empty prompt box) only shows while it's on, and with it Tab takes the recommended suggestion, or in multi mode exactly the ones you picked. Without it, ghost text never appears, and you use the number keys and `9` instead.
+
+Turn it on in `/config`, or in `~/.claude/settings.json`:
+
+```json
+"promptSuggestionEnabled": true
+```
+
+The `/next-steps-plus` settings pane shows whether it's on: the preview's prompt box says so when it's off.
+
 ## Picking several suggestions
 
 Set `selectMode` to `multi`. Each number key then ticks or unticks a suggestion, and `9` (or Tab, see below) puts all the ticked ones in the prompt box together:
