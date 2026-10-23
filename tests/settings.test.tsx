@@ -344,3 +344,36 @@ test('max suggestions stops at 7: 8 is the key for all but commands', async ($, 
   ROWS.splice(0, ROWS.length, ...saved)
   await ui.unmount()
 })
+
+test('mobile has no text box: − and + step a number, text points to /config', async ($, on) => {
+  const sets = settings(on)
+  const ui = await $.ui.mount({ ...pane(60), surface: 'mobile' })
+  // Mobile has no focus ring: a tap on the row selects it.
+  await ui.press({ key: 'labelChars' })
+  expect((await ui.find({ type: 'Text', text: /^Use − and \+/ }))?.text).toBe('Use − and + below (20-300)')
+  await ui.press({ key: 'inc' })
+  await ui.press({ key: 'dec' })
+  expect(sets).toEqual([
+    ['next-steps-plus.labelChars', 58],
+    ['next-steps-plus.labelChars', 38],
+  ])
+  await ui.press({ key: 'extraInstructions' })
+  expect(await ui.find({ type: 'Button', text: /editing below/ })).toBeUndefined()
+  expect((await ui.find({ type: 'Text', text: /\/config on a computer/ }))?.text).toBe('Change this in /config on a computer')
+  expect((await ui.find({ type: 'Text', text: /^Click or tap a setting/ }))?.text).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /shows in the terminal and the desktop app/ }))?.text).toBe(
+    'Preview (the suggestion list itself shows in the terminal and the desktop app, not here)',
+  )
+  await ui.unmount()
+})
+
+test('desktop uses click wording; the terminal keeps its keys', async ($, on) => {
+  settings(on)
+  const desktop = await $.ui.mount({ ...pane(96), surface: 'desktop' })
+  expect((await desktop.find({ type: 'Text', text: /^Click or tap a setting/ }))?.text).toBe('Click or tap a setting to change it')
+  expect(await desktop.find({ type: 'Text', text: /ctrl\+x|↑↓ move/ })).toBeUndefined()
+  await desktop.unmount()
+  const terminal = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  expect((await terminal.find({ type: 'Text', text: /↑↓ move/ }))?.text).toBeDefined()
+  await terminal.unmount()
+})

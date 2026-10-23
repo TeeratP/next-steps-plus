@@ -287,3 +287,10 @@ test('the defaults: multi, 5 suggestions, 8 selects recommended, "Do these tasks
   expect(asked).toContain('up to 5 concrete prompts')
   await ui.unmount()
 })
+
+test('on desktop the list says to click, not to type keys', MULTI, async ($, on) => {
+  await offer($, on)
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: click to pick, then "use selected"')
+  await ui.unmount()
+})

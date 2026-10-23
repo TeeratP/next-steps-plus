@@ -1,10 +1,12 @@
 {
   "name": "next-steps-plus",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "Suggests next prompts above the input after each turn. Same defaults as next-steps, plus settings for more and longer suggestions, previews, and multi-select.",
   "author": {
     "name": "Teerat Pipitcharulerd"
   },
+  "homepage": "https://github.com/TeeratP/next-steps-plus",
+  "repository": "https://github.com/TeeratP/next-steps-plus",
   "license": "MIT",
   "keywords": [
     "suggestions",

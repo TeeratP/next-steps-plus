@@ -431,7 +431,7 @@ type PreviewLine = { text: string; dim: boolean }
 // why there is none.
 type PreviewGhost = { text: string } | { off: string }
 
-function previewLines(s: Settings): { lines: PreviewLine[]; ghost: PreviewGhost } {
+function previewLines(s: Settings, keys: boolean): { lines: PreviewLine[]; ghost: PreviewGhost } {
   const multi = s.selectMode === 'multi'
   const items = SAMPLES.slice(0, s.maxSuggestions).map(sample => {
     const prompt = clean(sample.prompt, s.promptChars)
@@ -440,9 +440,13 @@ function previewLines(s: Settings): { lines: PreviewLine[]; ghost: PreviewGhost 
   })
   const lines: PreviewLine[] = [
     {
-      text: multi
-        ? `next: type numbers to pick, ${s.ghostText ? 'Tab or 9' : '9'} to use them, 0 to dismiss`
-        : `next: type ${items.length === 1 ? '1' : `1-${items.length}`} to put one in the prompt box, 0 to dismiss`,
+      text: !keys
+        ? multi
+          ? 'next: click to pick, then "use selected"'
+          : 'next: click one to put it in the prompt box'
+        : multi
+          ? `next: type numbers to pick, ${s.ghostText ? 'Tab or 9' : '9'} to use them, 0 to dismiss`
+          : `next: type ${items.length === 1 ? '1' : `1-${items.length}`} to put one in the prompt box, 0 to dismiss`,
       dim: true,
     },
   ]
@@ -543,8 +547,9 @@ function quickPicks(setting: Setting): ConfigRow['value'][] {
 }
 
 // Enter on a row: a toggle flips, a choice steps to its next option, and a
-// number or text row hands the keys to the box below it to type in.
-async function change($: EngineInterface, setting: Setting): Promise<void> {
+// number or text row hands the keys to the box below it to type in, where
+// the surface has one (`canType`); else it only selects the row.
+async function change($: EngineInterface, setting: Setting, canType = true): Promise<void> {
   const { row } = setting
   if (row.kind === 'boolean') return pick($, setting, !row.value)
   const options = quickPicks(setting)
@@ -554,6 +559,7 @@ async function change($: EngineInterface, setting: Setting): Promise<void> {
   }
   await update($, selected, () => setting.field)
   if (row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
+  if (!canType) return
   await update($, editing, () => setting.field)
   // Only a move the engine refused clears the mark; a call that errored
   // leaves it, and the next move, save or Esc clears it anyway.
@@ -584,15 +590,33 @@ async function submit($: EngineInterface, setting: Setting, text: string): Promi
   await pick($, setting, text)
 }
 
-function hint(setting: Setting, inBox: boolean): string {
+// How to change the selected setting, in the surface's terms: keys on the
+// terminal, clicks or taps elsewhere. `canType` is false where the surface
+// has no text box (mobile).
+function hint(setting: Setting, inBox: boolean, keys: boolean, canType: boolean): string {
   const { row } = setting
   if (row.isLocked) return 'Set by your organization.'
-  if (row.kind === 'boolean') return `Enter: turn ${row.value === true ? 'off' : 'on'}`
+  const turn = row.value === true ? 'off' : 'on'
+  if (row.kind === 'boolean') return keys ? `Enter: turn ${turn}` : `Click or tap the setting to turn it ${turn}`
   const count = quickPicks(setting).length
-  if (count > 0) return `Type 1-${count} to pick, or Enter for the next option`
+  if (count > 0) return keys ? `Type 1-${count} to pick, or Enter for the next option` : 'Click or tap an option below'
   const [low, high] = RANGES[setting.field] ?? [0, 0]
+  if (!canType) {
+    return row.kind === 'number' ? `Use − and + below (${low}-${high})` : 'Change this in /config on a computer'
+  }
   const what = row.kind === 'number' ? `Type a whole number ${low}-${high}` : 'Type the text (empty for none)'
+  if (!keys) return `${what} in the box below, then press Enter to save`
   return inBox ? `${what}, then Enter to save · Esc: back to the list` : 'Enter: edit in the box below'
+}
+
+// The step − and + move a number by where there is no text box.
+const STEPS: Readonly<Record<string, number>> = { maxSuggestions: 1, labelChars: 10, promptChars: 100, minAnswerChars: 20 }
+
+function stepped(setting: Setting, direction: 1 | -1): number | undefined {
+  if (typeof setting.row.value !== 'number') return undefined
+  const [low, high] = RANGES[setting.field] ?? [0, Number.MAX_SAFE_INTEGER]
+  const next = Math.min(high, Math.max(low, setting.row.value + direction * (STEPS[setting.field] ?? 1)))
+  return next === setting.row.value ? undefined : next
 }
 
 // Settings renamed in earlier versions. An update never touches saved
@@ -748,9 +772,13 @@ export const register: Register = (on, options) => {
         {below}
         <Box marginTop={1} />
         <Text dimColor>
-          {multi
-            ? `next: type numbers to pick, ${tabTakes ? 'Tab or 9' : '9'} to use them, 0 to dismiss`
-            : `next: type ${items.length === 1 ? '1' : `1-${items.length}`} to put one in the prompt box, 0 to dismiss`}
+          {e.surface !== 'terminal'
+            ? multi
+              ? 'next: click to pick, then "use selected"'
+              : 'next: click one to put it in the prompt box'
+            : multi
+              ? `next: type numbers to pick, ${tabTakes ? 'Tab or 9' : '9'} to use them, 0 to dismiss`
+              : `next: type ${items.length === 1 ? '1' : `1-${items.length}`} to put one in the prompt box, 0 to dismiss`}
         </Text>
         {items.map((item, index) => {
           const order = picked.indexOf(index)
@@ -842,7 +870,9 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e): Promise<RenderElement> => {
     const table = $.ui.resolve(e)
     const { Box, Text, Button } = table
-    const Input = 'Input' in table ? table.Input : undefined
+    // Mobile lists no usable text box (its table may still name one), so
+    // there numbers step with − and + and text points to /config.
+    const Input = 'Input' in table && e.surface !== 'mobile' ? table.Input : undefined
     const list = await ownSettings($)
     const chosen = await read($, selected)
     const refused = await read($, refusal)
@@ -869,13 +899,16 @@ export const register: Register = (on, options) => {
     // the row under it.
     const line = '─'.repeat(cols)
     const editingHere = inBox === current.field
+    // Keyboard wording (keys, ctrl+x, Esc) is the terminal's; other surfaces
+    // are clicked or tapped.
+    const keys = e.surface === 'terminal'
 
     // Top: every setting and its value; the one being typed says so, in colour.
     const rows = (
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
         {/* Lines keep their height; what does not fit is cut at the bottom. */}
         <Box flexDirection="column" flexShrink={0}>
-          <Text dimColor>{line}</Text>
+          <Text dimColor wrap="truncate-end">{line}</Text>
           <Text bold>Settings</Text>
           {scrolls ? <Text dimColor>{first > 0 ? `  ↑ ${first} more` : ' '}</Text> : null}
           {inView.map(one => (
@@ -883,7 +916,7 @@ export const register: Register = (on, options) => {
               key={one.field}
               plain
               autoFocus={one.field === current.field ? true : undefined}
-              onPress={() => void change($, one)}
+              onPress={() => void change($, one, Input !== undefined)}
             >
               {`${one.field === current.field ? '▸ ' : '  '}${one.name.padEnd(nameWidth)}`}
               {one.field === inBox ? (
@@ -907,7 +940,7 @@ export const register: Register = (on, options) => {
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
         {/* Lines keep their height; what does not fit is cut at the bottom. */}
         <Box flexDirection="column" flexShrink={0}>
-          <Text dimColor>{line}</Text>
+          <Text dimColor wrap="truncate-end">{line}</Text>
           {editingHere ? (
             <Text color="claude" bold>
               {current.name}
@@ -942,9 +975,9 @@ export const register: Register = (on, options) => {
                 {/* While typing, the box is framed in the accent colour with a
                     bold line over it, so the cursor is easy to find. */}
                 {editingHere ? (
-                  <Text color="claude" bold>{`▶ ${hint(current, true)}`}</Text>
+                  <Text color="claude" bold>{`▶ ${hint(current, true, keys, true)}`}</Text>
                 ) : (
-                  <Text dimColor>{hint(current, false)}</Text>
+                  <Text dimColor>{hint(current, false, keys, true)}</Text>
                 )}
                 {/* The setting's name sits outside, left of the box; the box
                     holds only the value being typed. */}
@@ -975,8 +1008,26 @@ export const register: Register = (on, options) => {
                 </Box>
                 {refused === '' ? null : <Text color="error">{refused}</Text>}
               </Box>
+            ) : row.kind === 'number' && !row.isLocked ? (
+              // No text box on this surface (mobile): step the number instead.
+              <Box flexDirection="column">
+                <Text dimColor>{hint(current, false, keys, false)}</Text>
+                <Box flexDirection="row" columnGap={2}>
+                  {([[-1, 'dec', '−'], [1, 'inc', '+']] as const).map(([direction, key, label]) => {
+                    const next = stepped(current, direction)
+                    return (
+                      <Button
+                        key={key}
+                        label={label}
+                        dimColor={next === undefined ? true : undefined}
+                        onPress={() => void (next === undefined ? undefined : pick($, current, next))}
+                      />
+                    )
+                  })}
+                </Box>
+              </Box>
             ) : (
-              <Text dimColor>{hint(current, false)}</Text>
+              <Text dimColor>{hint(current, false, keys, Input !== undefined)}</Text>
             )}
           </Box>
         </Box>
@@ -985,7 +1036,9 @@ export const register: Register = (on, options) => {
 
     // Bottom: the band as these settings draw it, cut to the section.
     const now = settings(Object.fromEntries(list.map(one => [one.field, one.row.value])))
-    const { lines, ghost } = previewLines(now)
+    const { lines, ghost } = previewLines(now, keys)
+    // The list itself draws on the terminal and the desktop app only.
+    const listShowsHere = e.surface === 'terminal' || e.surface === 'desktop'
     // The line, the title and a blank row take three rows, and the prompt-box
     // picture under the band five (a gap, its frame of three, its caption).
     const room = Math.max(1, sectionRows - 3 - GHOST_ROWS)
@@ -994,11 +1047,13 @@ export const register: Register = (on, options) => {
       <Box flexDirection="column" height={sectionRows} overflow="hidden" flexShrink={0}>
         {/* Lines keep their height; what does not fit is cut at the bottom. */}
         <Box flexDirection="column" flexShrink={0}>
-          <Text dimColor>{line}</Text>
+          <Text dimColor wrap="truncate-end">{line}</Text>
           <Text bold>
             Preview{' '}
             <Text dimColor>
-              {`(sample suggestions with your settings${now.optionMode === 'up-to' ? '; up-to often shows fewer' : ''})`}
+              {listShowsHere
+              ? `(sample suggestions with your settings${now.optionMode === 'up-to' ? '; up-to often shows fewer' : ''})`
+              : '(the suggestion list itself shows in the terminal and the desktop app, not here)'}
             </Text>
           </Text>
           <Text> </Text>
@@ -1039,9 +1094,11 @@ export const register: Register = (on, options) => {
           {/* With text in the prompt box the pane opens without the keyboard, and
               a plugin cannot take it: say how the person hands it over. */}
           <Text dimColor>
-            {e.props.isFocused
-              ? `↑↓ move · Enter change${values.length > 0 ? ` · 1-${values.length} pick` : ''} · Esc close`
-              : 'Keys go to the prompt now: press ctrl+x then Tab to use this pane (Esc gives them back)'}
+            {!keys
+              ? 'Click or tap a setting to change it'
+              : e.props.isFocused
+                ? `↑↓ move · Enter change${values.length > 0 ? ` · 1-${values.length} pick` : ''} · Esc close`
+                : 'Keys go to the prompt now: press ctrl+x then Tab to use this pane (Esc gives them back)'}
           </Text>
         </Box>
       </Box>
