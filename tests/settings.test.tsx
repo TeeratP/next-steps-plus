@@ -93,13 +93,21 @@ test('a narrow pane stacks the description under the list', async ($, on) => {
   await ui.unmount()
 })
 
-test('a number row is edited on the right and saved on Enter', async ($, on) => {
+test('a number row is picked from a list, no typing', async ($, on) => {
   const sets = settings(on)
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   await ui.press({ key: 'labelChars' })
-  await ui.input({ key: 'edit', text: 'abc' })
-  await ui.input({ key: 'edit', text: '80' })
+  await ui.select({ key: 'edit', value: '80' })
   expect(sets).toEqual([['next-steps-plus.labelChars', 80]])
+  await ui.unmount()
+})
+
+test('a text row is typed in the box below', async ($, on) => {
+  const sets = settings(on)
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  await ui.press({ key: 'extraInstructions' })
+  await ui.input({ key: 'edit', text: 'write prompts in Thai' })
+  expect(sets).toEqual([['next-steps-plus.extraInstructions', 'write prompts in Thai']])
   await ui.unmount()
 })
 

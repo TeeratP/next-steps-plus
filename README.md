@@ -84,13 +84,13 @@ whether the list may be shorter.
 Now: 3
 Default: 3 (same as the original next-steps)
 
-[ Max suggestions: 3 ]
+Max suggestions: 3  (Enter, then ↑↓ to pick)
 
 ↑↓ move · Enter change · Esc close
 ```
 
 - ↑↓ (or Tab) moves between settings.
-- Enter turns a switch on or off, moves a choice to its next option, or, for a number or text, puts the cursor in the box below; type the new value and press Enter again to save.
+- Enter turns a switch on or off, moves a choice to its next option, opens a list of values for a number (↑↓ to move, Enter to pick), or puts the cursor in the box below for text (type, then Enter to save).
 - Esc closes the pane.
 
 The pane opens beside the conversation in a wide terminal, or above the prompt otherwise. Long values are shortened with … in the list; the full value shows below as Now.
@@ -117,6 +117,10 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.12
+
+- Number settings are picked from a list of common values with ↑↓ and Enter, instead of typed. Your current value is always in the list.
 
 ### v0.1.11
 

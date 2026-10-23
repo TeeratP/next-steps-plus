@@ -403,10 +403,27 @@ async function submit($: EngineInterface, setting: Setting, text: string): Promi
   await $.ui.focus({ requestId: PANE, key: setting.field }).catch(() => undefined)
 }
 
+// The values a number row's picker offers (each within the setting's range),
+// with the current value added when it is not among them.
+const PICKS: Readonly<Record<string, readonly number[]>> = {
+  maxSuggestions: [1, 2, 3, 4, 5, 6, 7, 8],
+  labelChars: [20, 30, 40, 48, 60, 80, 100, 120, 160, 200, 250, 300],
+  promptChars: [200, 300, 400, 600, 800, 1000, 1500, 2000, 3000, 4000],
+  minAnswerChars: [0, 20, 40, 80, 120, 200, 400, 800],
+}
+
+function picks(setting: Setting): string[] {
+  const values = PICKS[setting.field] ?? []
+  const now = typeof setting.row.value === 'number' ? setting.row.value : undefined
+  const all = now === undefined || values.includes(now) ? values : [...values, now].sort((a, b) => a - b)
+  return all.map(String)
+}
+
 function hint(row: ConfigRow): string {
   if (row.isLocked) return 'Set by your organization.'
   if (row.kind === 'boolean') return `Enter: turn ${row.value === true ? 'off' : 'on'}`
   if (row.kind === 'choice') return `Enter: switch to ${nextOption(row) ?? '-'}`
+  if (row.kind === 'number') return 'Enter: pick a value with ↑↓, then Enter'
   return 'Enter: edit, then Enter again to save'
 }
 
@@ -602,6 +619,7 @@ export const register: Register = (on, options) => {
     const table = $.ui.resolve(e)
     const { Box, Text, Button } = table
     const Input = 'Input' in table ? table.Input : undefined
+    const Select = 'Select' in table ? table.Select : undefined
     const list = await ownSettings($)
     const chosen = await read($, selected)
     const current = list.find(one => one.field === chosen) ?? list[0]
@@ -642,7 +660,15 @@ export const register: Register = (on, options) => {
           </Text>
         </Box>
         <Box marginTop={1}>
-          {editable && Input !== undefined && !row.isLocked ? (
+          {row.kind === 'number' && Select !== undefined && !row.isLocked && picks(current).length > 0 ? (
+            <Select
+              key={EDITOR}
+              label={`${current.name}: `}
+              options={picks(current).map(value => ({ value, label: value }))}
+              value={String(row.value)}
+              onSelect={value => void submit($, current, value)}
+            />
+          ) : editable && Input !== undefined && !row.isLocked ? (
             <Input
               key={EDITOR}
               label={current.name}
