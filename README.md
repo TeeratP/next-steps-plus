@@ -143,7 +143,7 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 
 ## Changelog
 
-### v0.1.18 (not released yet)
+### v0.1.18
 
 - Fix: a line in the settings pane (for example a preview suggestion) could vanish when its part was one line too full; now what doesn't fit is cut at the bottom instead.
 - Preview: with ghost text on, the prompt-box picture always shows the faint text; if Claude Code's `promptSuggestionEnabled` is false, the caption says it won't actually appear until that's on.
