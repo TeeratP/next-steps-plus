@@ -1,5 +1,9 @@
 # Changelog
 
+### Unreleased
+
+- The model may mark more than one step (Recommended): every step that clearly should be done now, not just one.
+
 ### v0.2.0
 
 The first stable release: setting names are fixed from here on.

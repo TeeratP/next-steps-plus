@@ -294,3 +294,23 @@ test('on desktop the list says to click, not to type keys', MULTI, async ($, on)
   expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: click to pick, then "use selected"')
   await ui.unmount()
 })
+
+test('the model is told there can be more than one recommended step', BASELINE, async ($, on) => {
+  await offer($, on)
+  expect(asked).toContain('There can be more than one')
+})
+
+test('several recommended steps are all marked, and 8 selects them all', { options: { ...BASE, selectMode: 'multi', eightPicks: 'recommended' } }, async ($, on) => {
+  const filled = await offer($, on, JSON.stringify([
+    { label: 'Run the tests', prompt: 'Run the tests.', recommended: true },
+    { label: 'Update docs', prompt: 'Update the docs.' },
+    { label: 'Commit', prompt: 'Commit.', recommended: true },
+  ]))
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('[ ] Run the tests (Recommended)')
+  expect((await ui.find({ type: 'Button', key: 's2' }))?.text).toBe('[ ] Commit (Recommended)')
+  await ui.press({ key: 'all' })
+  await ui.press({ key: 'use selected (2)' })
+  expect(filled).toEqual(['Do these in order:\n1. Run the tests.\n2. Commit.'])
+  await ui.unmount()
+})

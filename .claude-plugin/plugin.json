@@ -119,7 +119,7 @@
     "markRecommended": {
       "type": "boolean",
       "title": "Mark recommended (default: on)",
-      "description": "Put (Recommended) after the next step the model would most advise taking now, usually just one, as Claude's own multiple-choice questions do. Tab ghost text then offers that step.",
+      "description": "Put (Recommended) after each next step the model would advise taking now (there can be more than one), as Claude's own multiple-choice questions do. Tab ghost text offers the first of them; in multi mode, 8 can select them all.",
       "required": false,
       "default": true
     },

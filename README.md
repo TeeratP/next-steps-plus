@@ -24,7 +24,7 @@ It's a fork of the original [next-steps](https://github.com/anthropics/claude-pl
 
 - **Pick several, send one prompt.** Tick suggestions with the number keys; they're written as one numbered draft in the order you ticked them.
 - **Tab takes your picks.** The faint ghost text in the prompt box follows what you tick, so Claude Code's own Tab accepts exactly your selection: the recommended step with nothing ticked, that one with one ticked, the numbered draft with several.
-- **(Recommended) marks the best next step,** the way Claude's own multiple-choice questions do, and `8` selects the recommended ones in one press.
+- **(Recommended) marks the steps worth doing now** (one or several), the way Claude's own multiple-choice questions do, and `8` selects them all in one press.
 - **Only what matters.** You get the steps that clearly matter, from none to 5, not a padded list. When the move is to wait for CI, a build or someone's reply, it says so instead of inventing work.
 - **Knows your skills and slash commands.** A suggestion can be `/skill arguments` for the skills and commands you actually have; one naming a command you don't have is dropped. A command is never mixed into a list with other steps, since anything after it would become its arguments.
 - **See what you'll get.** Show a short label, the label with its full prompt under it, or the full prompt itself as the label, so what you pick is exactly what lands in the box.
@@ -163,7 +163,7 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | `combineHeader` | `Do these tasks:` | `multi` only: the line above the list when several are picked; leave empty for none |
 | `extraInstructions` | none | Your own wishes for the suggestions, e.g. `write prompts in Thai` |
 | `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it (in multi mode, it follows your picks) |
-| `markRecommended` | on | Put (Recommended) after the step the model would most advise now, usually one; ghost text then offers that step |
+| `markRecommended` | on | Put (Recommended) after each step the model would advise now (there can be more than one); ghost text offers the first, and `8` can select them all |
 | `suggestSkills` | on\* | Let suggestions be your skills and slash commands |
 | `minAnswerChars` | `80`\* | No suggestions after answers shorter than this many characters |
 
