@@ -4,14 +4,14 @@ import type { ConfigRow, On } from 'claude-code'
 
 const PANE_ID = 'next-steps-plus-settings'
 
-function pane(bodyColumns: number) {
+function pane(bodyColumns: number, isFocused = true) {
   return {
     plugin: 'next-steps-plus',
     component: 'Pane',
     requestId: PANE_ID,
     props: {
       title: 'next-steps-plus settings',
-      isFocused: true,
+      isFocused,
       bodyColumns,
       placement: 'dock',
       scroll: { offset: 0, bodyRows: 30 },
@@ -84,6 +84,16 @@ test('a long value is cut in the list and shown whole below', async ($, on) => {
   expect((await ui.find({ type: 'Text', text: /^Now:/ }))?.text).toBe('Now: Do these, you prioritize and order them optimally')
   ROWS[3] = row('extraInstructions', 'Extra instructions (default: none)', 'text', '', 'Your own preferences for the suggestions.')
   await ui.unmount()
+})
+
+test('without the keyboard, the pane says how to take it', async ($, on) => {
+  settings(on)
+  const ui = await $.ui.mount({ ...pane(96, false), surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /ctrl\+x then Tab/ }))?.text).toContain('Esc gives them back')
+  await ui.unmount()
+  const focused = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  expect((await focused.find({ type: 'Text', text: /↑↓ move/ }))?.text).toBe('↑↓ move · Enter change · Esc close')
+  await focused.unmount()
 })
 
 test('a narrow pane stacks the description under the list', async ($, on) => {

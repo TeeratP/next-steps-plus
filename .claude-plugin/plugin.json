@@ -1,6 +1,6 @@
 {
   "name": "next-steps-plus",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Suggests next prompts above the input after each turn. Same defaults as next-steps, plus settings for more and longer suggestions, previews, and multi-select.",
   "author": {
     "name": "Teerat Pipitcharulerd"
@@ -100,6 +100,13 @@
       "type": "boolean",
       "title": "Tab ghost text (default: on)",
       "description": "Also offer the top suggestion as dim ghost text in the prompt box, taken with Tab.",
+      "required": false,
+      "default": true
+    },
+    "markRecommended": {
+      "type": "boolean",
+      "title": "Mark recommended (default: on)",
+      "description": "Put (Recommended) after the next step the model would most advise taking now, usually just one, as Claude's own multiple-choice questions do. Tab ghost text then offers that step.",
       "required": false,
       "default": true
     },

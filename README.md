@@ -4,7 +4,7 @@ After each answer, Claude Code suggests what you might ask next, shown above the
 
 ```
 next: type 1-3 to put one in the prompt box, 0 to dismiss
-  1: run the tests you just wrote
+  1: run the tests you just wrote (Recommended)
   2: do the same for the settings page
   3: /code-review high
   0: dismiss
@@ -94,6 +94,7 @@ Max suggestions: 3  (Enter, then ↑↓ to pick)
 - ↑↓ (or Tab) moves between settings.
 - Enter turns a switch on or off, moves a choice to its next option, opens a list of values for a number (↑↓ to move, Enter to pick), or puts the cursor in the box below for text (type, then Enter to save).
 - Esc closes the pane.
+- If the pane opens while the prompt box has text, your keys stay in the prompt (the pane says so at the bottom). Press ctrl+x, then Tab, to move them to the pane; Esc hands them back.
 
 The pane opens beside the conversation in a wide terminal, or above the prompt otherwise. Long values are shortened with … in the list; the full value shows below as Now.
 
@@ -109,6 +110,7 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | `combineHeader` | `Do these in order:` | `multi` only: the line above the list when several are picked; leave empty for none |
 | `extraInstructions` | none | Your own wishes for the suggestions, e.g. `write prompts in Thai` |
 | `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it |
+| `markRecommended` | on | Put (Recommended) after the step the model would most advise now, usually one; ghost text then offers that step |
 | `suggestSkills` | on\* | Let suggestions be your skills and slash commands |
 | `minAnswerChars` | `80`\* | No suggestions after answers shorter than this many characters |
 
@@ -119,6 +121,11 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.14
+
+- The step the model would most advise now is marked (Recommended) after its label, as in Claude's own multiple-choice questions; the Tab ghost text offers it. Turn off with `markRecommended`.
+- The settings pane says when it doesn't have the keyboard (the prompt box had text when it opened) and how to give it: ctrl+x, then Tab.
 
 ### v0.1.13
 

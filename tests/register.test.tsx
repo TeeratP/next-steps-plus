@@ -23,8 +23,9 @@ const REPLY = JSON.stringify([
 
 const MULTI = { options: { selectMode: 'multi' } } as const
 
-// What the fork was asked, by the last offer().
+// What the fork was asked, and the ghost text offered, by the last offer().
 let asked = ''
+let ghost = ''
 
 // Stand in for the engine, finish one turn, and return what reached the box.
 async function offer($: Engine, on: On, reply = REPLY): Promise<string[]> {
@@ -34,7 +35,7 @@ async function offer($: Engine, on: On, reply = REPLY): Promise<string[]> {
     asked = e.prompt
     return { value: { isAnswered: true, text: reply, usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }
   })
-  on('prompt.suggest', () => ({ isShown: true }))
+  on('prompt.suggest', (_, e) => ((ghost = e.text), { isShown: true }))
   on('prompt.fill', (_, e) => (filled.push(e.text), { isFilled: true }))
   on('turn.complete', (_, e) => ({ text: e.answer }))
   // The engine's own band, drawn beneath the plugin's.
@@ -124,6 +125,30 @@ test('prompts win over a wait in the same answer', async ($, on) => {
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Check the deploy logs.')
   expect(await ui.find({ type: 'Text', text: /nothing to do/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+const MARKED = JSON.stringify([
+  { label: 'Run the tests', prompt: 'Run the unit tests.' },
+  { label: 'Commit', prompt: 'Commit the change.', recommended: true },
+])
+
+test('a recommended step is marked, and ghost text offers it', async ($, on) => {
+  await offer($, on, MARKED)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the tests')
+  expect((await ui.find({ type: 'Button', key: 's1' }))?.text).toBe('Commit (Recommended)')
+  expect(ghost).toBe('Commit the change.')
+  expect(asked).toContain('"recommended": true')
+  await ui.unmount()
+})
+
+test('markRecommended off shows no mark and asks for none', { options: { markRecommended: false } }, async ($, on) => {
+  await offer($, on, MARKED)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 's1' }))?.text).toBe('Commit')
+  expect(asked).not.toContain('recommended')
+  expect(ghost).toBe('Run the unit tests.')
   await ui.unmount()
 })
 
