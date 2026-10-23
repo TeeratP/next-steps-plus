@@ -215,7 +215,7 @@ test('8 is always the key for all but commands', { options: { selectMode: 'multi
 test('eightPicks recommended: 8 picks the recommended suggestions', { options: { selectMode: 'multi', eightPicks: 'recommended' } }, async ($, on) => {
   const filled = await offer($, on, MARKED)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('recommended')
+  expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select recommended')
   await ui.press({ key: 'all' })
   await ui.press({ key: 'use selected (1)' })
   expect(filled).toEqual(['Commit the change.'])
@@ -245,5 +245,19 @@ test("the hint leaves Tab out when the plugin's ghost text is off", { options: {
   expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: type numbers to pick, 9 to use them, 0 to dismiss')
   await ui.press({ key: 's0' })
   expect(await ui.find({ type: 'Text', text: /^Tab\/$/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('8 reads "select all" when there is no command to leave out', { options: { selectMode: 'multi' } }, async ($, on) => {
+  await offer($, on, MARKED)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select all')
+  await ui.unmount()
+})
+
+test('8 reads "select all except commands" when a command is listed', MULTI, async ($, on) => {
+  await offer($, on)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select all except commands')
   await ui.unmount()
 })

@@ -50,7 +50,7 @@ next: type numbers to pick, Tab or 9 to use them, 0 to dismiss
   2: [ ] Update the README for the new option
   3: [1] Commit the change
   4: [ ] /code-review high (runs alone)
-  8: all except commands   9: use selected (2)   0: dismiss
+  8: select all except commands   Tab/9: use selected (2)   0: dismiss
 ```
 
 The number in brackets is the order you ticked them in, and that is the order they are written in. Here, pressing `3`, then `1`, then `9` writes:
@@ -146,6 +146,8 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 ## Changelog
 
 ### v0.1.20 (not released yet)
+
+- The 8 key says what it does: `8: select all except commands` (or `select all` when no command is listed) and `8: select recommended`.
 
 - Correction: Claude Code's `promptSuggestionEnabled` does not affect the plugin's ghost text, so the list shows `Tab or 9` / `Tab/9` whenever the plugin's `ghostText` is on, and the preview no longer says the ghost text is blocked. (v0.1.18 and v0.1.19 wrongly said it needed that setting.)
 

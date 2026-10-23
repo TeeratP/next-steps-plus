@@ -248,7 +248,7 @@ test('the preview follows multi-select and display settings', async ($, on) => {
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /^ {2}3: / }))?.text).toBe('  3: [ ] /code-review high (runs alone)')
   expect((await ui.find({ type: 'Text', text: /^ {2}1: / }))?.text).toBe('  1: [ ] Run the unit tests in tests/ and fix any failure.')
-  expect((await ui.find({ type: 'Text', text: /use selected/ }))?.text).toBe('  8: all except commands   Tab/9: use selected   0: dismiss')
+  expect((await ui.find({ type: 'Text', text: /use selected/ }))?.text).toBe('  8: select all except commands   Tab/9: use selected   0: dismiss')
   ROWS.splice(0, ROWS.length, ...saved)
   await ui.unmount()
 })
@@ -333,7 +333,7 @@ test('max suggestions stops at 7: 8 is the key for all but commands', async ($, 
   // A saved 8 is read as 7: the preview stops at 7, and 8 stays "all".
   expect((await ui.find({ type: 'Text', text: /^ {2}7: / }))?.text).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /^ {2}8: \[/ })).toBeUndefined()
-  expect((await ui.find({ type: 'Text', text: /^ {2}8: all/ }))?.text).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /^ {2}8: select all/ }))?.text).toBeDefined()
   await ui.press({ key: 'maxSuggestions' })
   await ui.input({ key: 'edit', text: '8' })
   expect((await ui.find({ type: 'Text', text: /was not saved/ }))?.text).toBe(

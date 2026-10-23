@@ -276,7 +276,7 @@ function eightShown(items: readonly Suggestion[], shown: number, mode: Settings[
 }
 
 function eightLabel(items: readonly Suggestion[], mode: Settings['eightPicks']): string {
-  return mode === 'recommended' ? 'recommended' : `all${items.some(isCommand) ? ' except commands' : ''}`
+  return mode === 'recommended' ? 'select recommended' : `select all${items.some(isCommand) ? ' except commands' : ''}`
 }
 
 // 8: picks what eightIndexes says; pressed again with exactly those picked,
@@ -446,7 +446,11 @@ function previewLines(s: Settings): { lines: PreviewLine[]; ghost: PreviewGhost 
       lines.push({ text: `${' '.repeat(multi ? 9 : 5)}${item.prompt}`, dim: true })
     }
   })
-  const eight = s.eightPicks === 'recommended' ? (items.some(item => item.recommended) ? '8: recommended   ' : '') : '8: all except commands   '
+  const eight = s.eightPicks === 'recommended'
+    ? items.some(item => item.recommended)
+      ? '8: select recommended   '
+      : ''
+    : `8: select all${items.some(item => item.prompt.startsWith('/')) ? ' except commands' : ''}   `
   const use = s.ghostText ? 'Tab/9' : '9'
   lines.push({ text: multi ? `  ${eight}${use}: use selected   0: dismiss` : '  0: dismiss', dim: false })
   const top = items.find(item => item.recommended) ?? items[0]
