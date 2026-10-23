@@ -58,7 +58,26 @@ Do these in order:
 
 ## Settings
 
-Change them on the install screen, or later in `/config`. A change takes effect right away.
+Change them on the install screen, in `/config`, or in the plugin's own settings pane: type `/next-steps-plus`. A change takes effect right away, and all three show and change the same values.
+
+The settings pane lists every setting on the left and shows the selected one in full on the right: its description, its current value, and its default.
+
+```
+  Selection mode          single   │ Selection mode
+▸ Number of suggestions   3        │ How many suggestions to show (1-8).
+  Label length            48       │
+  Prompt length           600      │ Now: 3
+  Show prompt preview     off      │ Default: 3 (same as the original next-steps)
+  …                                │
+                                   │ [ Number of suggestions: 3 ]
+↑↓ move · Enter change · Esc close
+```
+
+- ↑↓ (or Tab) moves between settings.
+- Enter turns a switch on or off, moves a choice to its next option, or, for a number or text, puts the cursor in the box on the right; type the new value and press Enter again to save.
+- Esc closes the pane.
+
+The pane opens beside the conversation in a wide terminal, or above the prompt otherwise; in a narrow pane the description shows under the list.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
@@ -81,6 +100,10 @@ Change them on the install screen, or later in `/config`. A change takes effect 
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.5
+
+- `/next-steps-plus` opens a settings pane that shows each setting's full description, current value and default beside the list.
 
 ### v0.1.4
 

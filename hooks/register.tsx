@@ -5,17 +5,22 @@
 // (shares the prompt cache, so it has full context for the price of one short
 // reply) and ask for up to maxSuggestions likely next prompts. Draw them as
 // numbered buttons in the band above the composer, each with, if previewFlag
-// is on, its full prompt dimmed beneath. A press toggles that suggestion; 9 writes every picked one
-// into the real composer as the person's draft ($.prompt.fill), numbered in
-// the order picked, for them to edit and Enter; 0 dismisses. A slash-command
-// suggestion runs alone (the rest of a prompt would become its arguments), so
-// picking one clears the others and picking another clears it. The top
+// is on, its full prompt dimmed beneath. In single mode (the default, as the
+// original) a press writes that prompt into the real composer as the person's
+// draft ($.prompt.fill). In multi mode a press toggles it, 8 picks every prose
+// suggestion, and 9 writes the picked ones, numbered in the order picked. A
+// slash-command suggestion runs alone (the rest of a prompt would become its
+// arguments), so picking one clears the others and picking another clears it.
+// 0 dismisses. The top
 // suggestion is also offered as the composer's dim Tab-to-take ghost text
 // ($.prompt.suggest). Nothing is submitted by the plugin, so no origin framing.
 // The fork is also handed the session's skills and slash commands
 // ($.command.list), so a suggestion can be "/skill arguments".
+// /next-steps-plus opens a settings pane: the plugin's /config rows on the
+// left, the selected one's full description, default and editor on the right.
 
-import type { CommandInfo, EngineInterface, Register, RenderElement } from 'claude-code'
+import { atom, read, update } from 'claude-code'
+import type { CommandInfo, ConfigRow, EngineInterface, Register, RenderElement } from 'claude-code'
 
 type Suggestion = { label: string; prompt: string }
 
@@ -257,6 +262,107 @@ function settings(options: Record<string, unknown> | undefined): Settings {
   }
 }
 
+// The settings pane. Rows come from $.config.list(), so labels, descriptions
+// and values are the ones /config shows, and a change there or here is the
+// same change (it reloads this module; the selection is kept in $.state).
+const PANE = 'next-steps-plus-settings'
+const COMMAND = 'next-steps-plus'
+const FIELDS = [
+  'selectMode',
+  'maxSuggestions',
+  'labelChars',
+  'promptChars',
+  'previewFlag',
+  'promptStyle',
+  'combineHeader',
+  'extraInstructions',
+  'ghostText',
+  'suggestSkills',
+  'minAnswerChars',
+] as const
+// Fields whose default is the original next-steps' (the README's * marks).
+const NEW_FIELDS: ReadonlySet<string> = new Set(['combineHeader', 'extraInstructions'])
+const EDITOR = 'edit'
+const WIDE_COLUMNS = 72
+const selected = atom({ plugin: 'next-steps-plus', key: 'selected' } as const, 'selectMode')
+
+type Setting = { field: string; name: string; fallback: string; row: ConfigRow }
+
+function fieldOf(row: ConfigRow): string {
+  return row.key.slice(row.key.lastIndexOf('.') + 1)
+}
+
+async function ownSettings($: EngineInterface): Promise<Setting[]> {
+  const rows = await $.config.list()
+  return FIELDS.flatMap(field => {
+    const row = rows.find(r => r.key.startsWith('next-steps-plus') && fieldOf(r) === field)
+    if (row === undefined) return []
+    const match = / \(default: (.*)\)$/.exec(row.label)
+    return [{ field, name: match === null ? row.label : row.label.slice(0, match.index), fallback: match?.[1] ?? '', row }]
+  })
+}
+
+function shown(value: ConfigRow['value']): string {
+  if (typeof value === 'boolean') return value ? 'on' : 'off'
+  if (typeof value === 'string') return value === '' ? '(none)' : value
+  return Array.isArray(value) ? value.join(', ') : String(value)
+}
+
+function nextOption(row: ConfigRow): string | undefined {
+  const options = row.options ?? []
+  if (options.length === 0) return undefined
+  return options[(options.indexOf(String(row.value)) + 1) % options.length]
+}
+
+async function setValue($: EngineInterface, key: string, value: ConfigRow['value']): Promise<void> {
+  const result = await $.config.set({ key, value })
+  if ('deny' in result && typeof result.deny === 'string') $.ui.toast(`not changed: ${result.deny}`)
+}
+
+// Enter on a row: a toggle flips, a choice moves to its next option, and a
+// number or text row hands the keys to the editor on the right.
+async function change($: EngineInterface, setting: Setting): Promise<void> {
+  await update($, selected, () => setting.field)
+  const { row } = setting
+  if (row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
+  if (row.kind === 'boolean') return setValue($, row.key, !row.value)
+  if (row.kind === 'choice') {
+    const option = nextOption(row)
+    return option === undefined ? undefined : setValue($, row.key, option)
+  }
+  await $.ui.focus({ requestId: PANE, key: EDITOR }).catch(() => undefined)
+}
+
+async function submit($: EngineInterface, setting: Setting, text: string): Promise<void> {
+  const { row } = setting
+  if (row.kind === 'number') {
+    const value = Number(text.trim())
+    if (text.trim() === '' || !Number.isFinite(value)) return void $.ui.toast('type a number')
+    await setValue($, row.key, value)
+  } else {
+    await setValue($, row.key, text)
+  }
+  await $.ui.focus({ requestId: PANE, key: setting.field }).catch(() => undefined)
+}
+
+function hint(row: ConfigRow): string {
+  if (row.isLocked) return 'Set by your organization.'
+  if (row.kind === 'boolean') return `Enter: turn ${row.value === true ? 'off' : 'on'}`
+  if (row.kind === 'choice') return `Enter: switch to ${nextOption(row) ?? '-'}`
+  return 'Enter: edit, then Enter again to save'
+}
+
+function openSettings($: EngineInterface) {
+  return $.ui.open({
+    id: PANE,
+    title: 'next-steps-plus settings',
+    focus: true,
+    closeOnEscape: true,
+    holdToasts: true,
+    columns: 96,
+  })
+}
+
 export const register: Register = (on, options) => {
   const s = settings(options as Record<string, unknown> | undefined)
 
@@ -361,6 +467,100 @@ export const register: Register = (on, options) => {
             />
           )}
           <Button hotkey="0" plain label="dismiss" onPress={() => show($, { kind: 'hidden' })} />
+        </Box>
+      </Box>
+    )
+  })
+
+  on('session.start', async ($, e, next) => {
+    await $.command.register({
+      name: COMMAND,
+      description: 'Open next-steps-plus settings, with each setting\'s full description',
+    })
+    return next(e)
+  })
+
+  on('command.run', { command: COMMAND }, async $ => {
+    const { isPlaced } = await openSettings($)
+    return { text: isPlaced ? 'Opened next-steps-plus settings.' : 'Could not open the settings pane here; use /config.' }
+  }).catch(() => ({ text: 'Could not open the settings pane; use /config.' }))
+
+  // The focus ring moving onto a row selects it, so the right side follows.
+  on('ui.focus', { component: 'Pane', requestId: PANE }, async ($, e, next) => {
+    const result = await next(e)
+    const element = e.element
+    if (result.deny === undefined && element !== undefined && (FIELDS as readonly string[]).includes(element)) {
+      await update($, selected, () => element)
+    }
+    return result
+  }).catch(($, e, next) => next(e))
+
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e): Promise<RenderElement> => {
+    const table = $.ui.resolve(e)
+    const { Box, Text, Button } = table
+    const Input = 'Input' in table ? table.Input : undefined
+    const list = await ownSettings($)
+    const chosen = await read($, selected)
+    const current = list.find(one => one.field === chosen) ?? list[0]
+    if (current === undefined) return <Text dimColor>No next-steps-plus settings found; try /config.</Text>
+    const wide = e.props.bodyColumns >= WIDE_COLUMNS
+    const nameWidth = Math.max(...list.map(one => one.name.length)) + 2
+    const leftWidth = wide ? Math.min(nameWidth + 14, Math.floor(e.props.bodyColumns / 2)) : e.props.bodyColumns
+    const { row } = current
+    const editable = row.kind === 'number' || row.kind === 'text'
+
+    const rows = (
+      <Box flexDirection="column" width={leftWidth} flexShrink={0}>
+        {list.map(one => (
+          <Button
+            key={one.field}
+            plain
+            autoFocus={one.field === current.field ? true : undefined}
+            onPress={() => void change($, one)}
+          >
+            {`${one.field === current.field ? '▸ ' : '  '}${one.name.padEnd(nameWidth)}`}
+            <Text dimColor>{shown(one.row.value)}</Text>
+          </Button>
+        ))}
+      </Box>
+    )
+
+    const details = (
+      <Box flexDirection="column" flexGrow={1} marginLeft={wide ? 2 : 0} marginTop={wide ? 0 : 1}>
+        <Text bold>{current.name}</Text>
+        <Text>{row.description ?? ''}</Text>
+        <Box marginTop={1} flexDirection="column">
+          <Text>
+            Now: <Text bold>{shown(row.value)}</Text>
+          </Text>
+          <Text dimColor>
+            {`Default: ${current.fallback}${NEW_FIELDS.has(current.field) ? ' (new in next-steps-plus)' : ' (same as the original next-steps)'}`}
+          </Text>
+        </Box>
+        <Box marginTop={1}>
+          {editable && Input !== undefined && !row.isLocked ? (
+            <Input
+              key={EDITOR}
+              label={current.name}
+              value={typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : ''}
+              placeholder={row.kind === 'number' ? 'a number' : 'text, or empty for none'}
+              onSubmit={value => void submit($, current, value)}
+            />
+          ) : (
+            <Text dimColor>{hint(row)}</Text>
+          )}
+        </Box>
+      </Box>
+    )
+
+    return (
+      <Box flexDirection="column">
+        <Box flexDirection={wide ? 'row' : 'column'}>
+          {rows}
+          {details}
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>↑↓ move · Enter change · Esc close</Text>
         </Box>
       </Box>
     )

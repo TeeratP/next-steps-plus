@@ -1,6 +1,6 @@
 {
   "name": "next-steps-plus",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Suggests next prompts above the input after each turn. Same defaults as next-steps, plus settings for more and longer suggestions, previews, and multi-select.",
   "author": {
     "name": "Teerat Pipitcharulerd"
@@ -13,6 +13,7 @@
     "function-hooks",
     "ui"
   ],
+  "types": "./types/index.d.ts",
   "userConfig": {
     "selectMode": {
       "type": "string",
