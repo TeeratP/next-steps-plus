@@ -103,6 +103,10 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 
 ## Changelog
 
+### v0.1.9
+
+- `/next-steps-plus` now also works after updating mid-session with `/reload-plugins`: the command is added at the next turn instead of only when a session starts.
+
 ### v0.1.8
 
 - `countMode` is renamed `optionMode` (shown as "Option mode"), and its description now explains both choices. If you set `countMode`, set `optionMode` instead.

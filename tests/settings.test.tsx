@@ -91,3 +91,12 @@ test('a number row is edited on the right and saved on Enter', async ($, on) => 
   expect(sets).toEqual([['next-steps-plus.labelChars', 80]])
   await ui.unmount()
 })
+
+test('a turn declares /next-steps-plus when the session start was missed', async ($, on) => {
+  const declared: string[] = []
+  on('command.register', (_, e) => (declared.push(e.name), { value: { command: e.name } }))
+  on('turn.start', (_, e) => ({ turnId: e.turnId }))
+  await $.turn.start({ text: 'hi', turnId: 't1' })
+  await $.turn.start({ text: 'again', turnId: 't2' })
+  expect(declared).toEqual(['next-steps-plus'])
+})

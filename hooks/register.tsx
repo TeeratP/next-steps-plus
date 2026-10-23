@@ -390,6 +390,20 @@ function hint(row: ConfigRow): string {
   return 'Enter: edit, then Enter again to save'
 }
 
+// The command is declared at session start, and again at the first turn
+// after this module loads mid-session (an update and /reload-plugins), which
+// sees no session.start. Declaring it again only replaces it.
+let commandDeclared = false
+
+async function declareCommand($: EngineInterface): Promise<void> {
+  if (commandDeclared) return
+  await $.command.register({
+    name: COMMAND,
+    description: 'Open next-steps-plus settings, with each setting\'s full description',
+  })
+  commandDeclared = true
+}
+
 function openSettings($: EngineInterface) {
   return $.ui.open({
     id: PANE,
@@ -407,6 +421,7 @@ export const register: Register = (on, options) => {
   // A new turn (typed or otherwise) hides whatever was offered.
   on('turn.start', async ($, e, next) => {
     if (view.kind !== 'hidden') show($, { kind: 'hidden' })
+    await declareCommand($).catch(error => $.ui.log(`could not declare /${COMMAND}: ${String(error)}`))
     return next(e)
   })
 
@@ -522,10 +537,7 @@ export const register: Register = (on, options) => {
   })
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({
-      name: COMMAND,
-      description: 'Open next-steps-plus settings, with each setting\'s full description',
-    })
+    await declareCommand($).catch(error => $.ui.log(`could not declare /${COMMAND}: ${String(error)}`))
     return next(e)
   })
 
