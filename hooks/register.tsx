@@ -20,8 +20,8 @@
 // ($.prompt.suggest). Nothing is submitted by the plugin, so no origin framing.
 // The fork is also handed the session's skills and slash commands
 // ($.command.list), so a suggestion can be "/skill arguments".
-// /next-steps-plus opens a settings pane: the plugin's /config rows on the
-// list on top, the selected one's full description, default and values below it.
+// /next-steps-plus opens a settings pane: the plugin's /config rows as a
+// list on top, the selected one's full description, default and values below.
 
 import { atom, read, update } from 'claude-code'
 import type { CommandInfo, ConfigRow, EngineInterface, Register, RenderElement } from 'claude-code'
