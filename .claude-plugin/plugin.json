@@ -1,6 +1,6 @@
 {
   "name": "next-steps-plus",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Suggests next prompts above the input after each turn. Same defaults as next-steps, plus settings for more and longer suggestions, previews, and multi-select.",
   "author": {
     "name": "Teerat Pipitcharulerd"
@@ -28,10 +28,21 @@
     },
     "maxSuggestions": {
       "type": "number",
-      "title": "Number of suggestions (default: 3)",
-      "description": "Show up to this many suggestions (1-8).",
+      "title": "Max suggestions (default: 3)",
+      "description": "Show at most this many suggestions (1-8). See Count for whether the list may be shorter.",
       "required": false,
       "default": 3
+    },
+    "countMode": {
+      "type": "string",
+      "title": "Count (default: up-to)",
+      "description": "up-to: list only the next steps that clearly matter, anywhere from none to Max suggestions; no filler. exactly: always fill all Max suggestions slots (unless the conversation is clearly finished).",
+      "options": [
+        "up-to",
+        "exactly"
+      ],
+      "required": false,
+      "default": "up-to"
     },
     "labelChars": {
       "type": "number",

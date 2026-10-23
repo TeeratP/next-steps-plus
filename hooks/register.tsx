@@ -36,6 +36,7 @@ type Settings = {
   minAnswerChars: number
   suggestSkills: boolean
   maxSuggestions: number
+  countMode: 'up-to' | 'exactly'
   labelChars: number
   promptChars: number
   display: 'label' | 'label+prompt' | 'prompt'
@@ -116,10 +117,16 @@ function skillList(commands: readonly CommandInfo[]): string {
 function forkPrompt(skills: string, s: Settings): string {
   return (
     'Do not continue the task. Instead, predict what the user is most likely to ask you next, ' +
-    `as up to ${s.maxSuggestions} concrete prompts written in the user's voice (imperative, specific to ` +
-    'this conversation: name the file, test, PR, or follow-up they would actually type). Prefer the ' +
-    'obvious next action (run the tests, commit, fix the thing you flagged, do the same for X) over generic ' +
-    'ones. ' +
+    `as ${s.countMode === 'exactly' ? 'exactly' : 'up to'} ${s.maxSuggestions} concrete prompts written ` +
+    "in the user's voice (imperative, specific to this conversation: name the file, test, PR, or " +
+    'follow-up they would actually type). Prefer the obvious next action (run the tests, commit, fix the ' +
+    'thing you flagged, do the same for X) over generic ones. ' +
+    // up-to asks for only what matters; exactly fills every slot.
+    (s.countMode === 'exactly'
+      ? `Give ${s.maxSuggestions} unless the conversation is clearly finished. `
+      : 'List only next steps that clearly matter now, each one the user would plausibly want. One or ' +
+        `two strong suggestions beat ${s.maxSuggestions} weak ones; never pad the list to reach ` +
+        `${s.maxSuggestions}. `) +
     // standard asks for no length, as the original next-steps did.
     (s.promptStyle === 'detailed'
       ? 'Make each prompt complete enough to act on without re-asking: 1-3 sentences saying what to ' +
@@ -258,6 +265,7 @@ function settings(options: Record<string, unknown> | undefined): Settings {
     minAnswerChars: bounded(options?.minAnswerChars, 80, 0, 100_000),
     suggestSkills: options?.suggestSkills !== false,
     maxSuggestions: bounded(options?.maxSuggestions, 3, 1, SUGGESTIONS_LIMIT),
+    countMode: options?.countMode === 'exactly' ? 'exactly' : 'up-to',
     labelChars: bounded(options?.labelChars, 48, 20, 300),
     promptChars,
     display:
@@ -299,6 +307,7 @@ const COMMAND = 'next-steps-plus'
 const FIELDS = [
   'selectMode',
   'maxSuggestions',
+  'countMode',
   'labelChars',
   'promptChars',
   'display',
@@ -310,7 +319,7 @@ const FIELDS = [
   'minAnswerChars',
 ] as const
 // Fields whose default is the original next-steps' (the README's * marks).
-const NEW_FIELDS: ReadonlySet<string> = new Set(['combineHeader', 'extraInstructions'])
+const NEW_FIELDS: ReadonlySet<string> = new Set(['countMode', 'combineHeader', 'extraInstructions'])
 const EDITOR = 'edit'
 const WIDE_COLUMNS = 72
 const selected = atom({ plugin: 'next-steps-plus', key: 'selected' } as const, 'selectMode')

@@ -96,6 +96,18 @@ test('display label (the default) shows labels only', async ($, on) => {
   await ui.unmount()
 })
 
+test('count up-to (the default) asks for only what matters', async ($, on) => {
+  await offer($, on)
+  expect(asked).toContain('as up to 3 concrete prompts')
+  expect(asked).toContain('never pad the list')
+})
+
+test('count exactly asks to fill every slot', { options: { countMode: 'exactly', maxSuggestions: 4 } }, async ($, on) => {
+  await offer($, on)
+  expect(asked).toContain('as exactly 4 concrete prompts')
+  expect(asked).not.toContain('never pad')
+})
+
 test('display prompt shows the prompt itself and asks for no labels', { options: { display: 'prompt' } }, async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
