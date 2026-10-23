@@ -71,6 +71,22 @@ test('multi: a slash command clears the other picks', MULTI, async ($, on) => {
   await ui.unmount()
 })
 
+test('previewFlag shows each full prompt under its label', { options: { previewFlag: true } }, async ($, on) => {
+  await offer($, on)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /fix any failure/ }))?.text).toBe(
+    'Run the unit tests in tests/ and fix any failure.',
+  )
+  await ui.unmount()
+})
+
+test('preview is off by default', async ($, on) => {
+  await offer($, on)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: /fix any failure/ })).toBeUndefined()
+  await ui.unmount()
+})
+
 test('default (single, as the original): a press fills that prompt at once', async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })

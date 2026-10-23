@@ -4,8 +4,8 @@
 // next-steps-plus: a fork of next-steps. When a turn ends, fork the session
 // (shares the prompt cache, so it has full context for the price of one short
 // reply) and ask for up to maxSuggestions likely next prompts. Draw them as
-// numbered buttons in the band above the composer, each with a dim preview of
-// its full prompt. A press toggles that suggestion; 9 writes every picked one
+// numbered buttons in the band above the composer, each with, if previewFlag
+// is on, its full prompt dimmed beneath. A press toggles that suggestion; 9 writes every picked one
 // into the real composer as the person's draft ($.prompt.fill), numbered in
 // the order picked, for them to edit and Enter; 0 dismisses. A slash-command
 // suggestion runs alone (the rest of a prompt would become its arguments), so
@@ -31,7 +31,7 @@ type Settings = {
   maxSuggestions: number
   labelChars: number
   promptChars: number
-  previewChars: number
+  previewFlag: boolean
   selectMode: 'multi' | 'single'
   promptStyle: 'standard' | 'detailed' | 'brief'
   ghostText: boolean
@@ -248,7 +248,7 @@ function settings(options: Record<string, unknown> | undefined): Settings {
     maxSuggestions: bounded(options?.maxSuggestions, 3, 1, SUGGESTIONS_LIMIT),
     labelChars: bounded(options?.labelChars, 48, 20, 300),
     promptChars,
-    previewChars: bounded(options?.previewChars, 0, 0, promptChars),
+    previewFlag: options?.previewFlag === true,
     selectMode: options?.selectMode === 'multi' ? 'multi' : 'single',
     promptStyle: options?.promptStyle === 'detailed' || options?.promptStyle === 'brief' ? options.promptStyle : 'standard',
     ghostText: options?.ghostText !== false,
@@ -323,8 +323,7 @@ export const register: Register = (on, options) => {
           const order = picked.indexOf(index)
           const mark = !multi ? '' : order === -1 ? '[ ] ' : `[${order + 1}] `
           const alone = multi && isCommand(item) ? ' (runs alone)' : ''
-          const preview =
-            s.previewChars > 0 && item.prompt !== item.label ? clean(item.prompt, s.previewChars) : ''
+          const preview = s.previewFlag && item.prompt !== item.label ? item.prompt : ''
           return (
             <Box key={`s${index}`} marginLeft={2} flexDirection="column">
               <Button

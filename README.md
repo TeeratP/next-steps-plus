@@ -52,7 +52,7 @@ The defaults are the original's. What you can change:
 | Suggestions | 3 | 3 | up to 8 |
 | Button label | 48 chars | 48 chars | up to 300 |
 | Prompt | 600 chars | 600 chars | up to 4000; `detailed` or `brief` style |
-| Full prompt visible before picking | no | no | dim preview under each label (`previewChars`) |
+| Full prompt visible before picking | no | no | full prompt dimmed under each label (`previewFlag`) |
 | Picking | one | one | several, plus pick all (`selectMode: multi`) |
 | Settings | 2 | 11 | |
 
@@ -86,7 +86,7 @@ Set them on the install screen or later in `/config` (or under `pluginConfigs` i
 | `maxSuggestions` | `3` | How many suggestions, 1–8 (`9` and `0` are taken; at 8, **all** is click-only) |
 | `labelChars` | `48` | Longest button label, 20–300 |
 | `promptChars` | `600` | Longest suggested prompt, 200–4000 |
-| `previewChars` | `0` | How much of each full prompt to preview under its label, e.g. `240`; `0` hides it |
+| `previewFlag` | `false` | Show each suggestion's full prompt dimmed under its label |
 | `promptStyle` | `standard` | `standard`: no length guidance, as the original. `detailed`: 1–3 sentences with scope and what done looks like. `brief`: one short sentence |
 | `combineHeader` | `Do these in order:` | In `multi` mode, the line above the numbered list when several are picked; empty for none |
 | `extraInstructions` | (empty) | Your own guidance for the suggester, e.g. `write prompts in Thai` |
@@ -95,6 +95,10 @@ Set them on the install screen or later in `/config` (or under `pluginConfigs` i
 | `minAnswerChars` | `80` | Skip suggestions after answers shorter than this |
 
 ## Changelog
+
+### v0.1.4
+
+- `previewChars` is replaced by `previewFlag`, an on/off switch. When on, each suggestion's full prompt shows dimmed under its label. A saved `previewChars` value is ignored.
 
 ### v0.1.3
 
