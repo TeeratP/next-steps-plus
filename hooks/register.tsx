@@ -351,12 +351,12 @@ const NEW_FIELDS: ReadonlySet<string> = new Set(['optionMode', 'combineHeader', 
 const EDITOR = 'edit'
 // A list value longer than this is cut with an ellipsis; "Now:" shows it whole.
 const LIST_VALUE_MAX = 24
-// Rows the pane asks for beyond one per setting: the rule, the details, the
-// editor and the keys line, so every row shows without scrolling.
-const PANE_EXTRA_ROWS = 16
-// Rows for the preview at the bottom: its rule and caption, the hint, up to
-// eight suggestions with a prompt line each, the keys row and the ghost line.
-const PREVIEW_ROWS = 22
+// The pane's three sections (settings, the selected one, the preview) are
+// the same fixed height: a title rule and one row per setting. What does not
+// fit a section is cut, the preview saying how many lines it left out.
+const SECTION_ROWS = FIELDS.length + 1
+// Below the sections: a gap and the keys line.
+const FOOTER_ROWS = 2
 
 // What the preview shows: made-up next steps, one of them recommended and
 // one a slash command, run through the person's settings as real ones are.
@@ -585,7 +585,7 @@ function openSettings($: EngineInterface) {
     focus: true,
     closeOnEscape: true,
     holdToasts: true,
-    rows: FIELDS.length + PANE_EXTRA_ROWS + PREVIEW_ROWS,
+    rows: SECTION_ROWS * 3 + FOOTER_ROWS,
     columns: 72,
   })
 }
@@ -787,8 +787,15 @@ export const register: Register = (on, options) => {
     const { row } = current
     const values = row.isLocked ? [] : quickPicks(current)
 
+    const cols = Math.max(1, e.props.bodyColumns)
+    // A section's first row: its title inside a rule, as wide as the pane.
+    const rule = (title: string) => `── ${title} ${'─'.repeat(Math.max(0, cols - title.length - 4))}`
+    const editingHere = inBox === current.field
+
+    // Top: every setting and its value; the one being typed says so, in colour.
     const rows = (
-      <Box flexDirection="column">
+      <Box flexDirection="column" height={SECTION_ROWS} overflow="hidden" flexShrink={0}>
+        <Text dimColor>{rule('Settings')}</Text>
         {list.map(one => (
           <Button
             key={one.field}
@@ -797,26 +804,36 @@ export const register: Register = (on, options) => {
             onPress={() => void change($, one)}
           >
             {`${one.field === current.field ? '▸ ' : '  '}${one.name.padEnd(nameWidth)}`}
-            <Text dimColor>{one.field === inBox ? EDITING_MARK : clean(shown(one.row.value), LIST_VALUE_MAX)}</Text>
+            {one.field === inBox ? (
+              <Text color="claude" bold>
+                {EDITING_MARK}
+              </Text>
+            ) : (
+              <Text dimColor>{clean(shown(one.row.value), LIST_VALUE_MAX)}</Text>
+            )}
           </Button>
         ))}
       </Box>
     )
 
+    // Middle: the selected setting, and where to change it.
     const details = (
-      <Box flexDirection="column">
-        <Text dimColor>{'─'.repeat(Math.max(1, e.props.bodyColumns))}</Text>
-        <Text bold>{current.name}</Text>
+      <Box flexDirection="column" height={SECTION_ROWS} overflow="hidden" flexShrink={0}>
+        {editingHere ? (
+          <Text color="claude" bold>
+            {rule(current.name)}
+          </Text>
+        ) : (
+          <Text dimColor>{rule(current.name)}</Text>
+        )}
         <Text>{row.description ?? ''}</Text>
-        <Box marginTop={1} flexDirection="column">
-          <Text>
-            Now: <Text bold>{shown(row.value)}</Text>
-          </Text>
+        <Text>
+          Now: <Text bold>{shown(row.value)}</Text>
           <Text dimColor>
-            {`Default: ${current.fallback}${NEW_FIELDS.has(current.field) ? ' (new in next-steps-plus)' : ' (same as the original next-steps)'}`}
+            {` · Default: ${current.fallback}${NEW_FIELDS.has(current.field) ? ' (new in next-steps-plus)' : ' (same as the original next-steps)'}`}
           </Text>
-        </Box>
-        {/* Digits pick a value right here: the ring never leaves the row. */}
+        </Text>
+        {/* Digits pick a choice right here: the ring never leaves the row. */}
         {values.length === 0 ? null : (
           <Box marginTop={1} flexDirection="row" flexWrap="wrap" columnGap={2}>
             {values.map((value, index) => (
@@ -830,25 +847,35 @@ export const register: Register = (on, options) => {
             ))}
           </Box>
         )}
-        <Box marginTop={1}>
+        <Box marginTop={1} flexDirection="column">
           {(row.kind === 'text' || row.kind === 'number') && Input !== undefined && !row.isLocked ? (
             <Box flexDirection="column">
-              <Input
-                key={EDITOR}
-                label={current.name}
-                value={typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : ''}
-                placeholder={
-                  row.kind === 'number'
-                    ? `a whole number, ${(RANGES[current.field] ?? [0, 0]).join('-')}`
-                    : 'text, or empty for none'
-                }
-                onSubmit={value => void submit($, current, value)}
-              />
-              {refused === '' ? (
-                <Text dimColor>{hint(current, inBox === current.field)}</Text>
+              {/* While typing, the box is framed in the accent colour with a
+                  bold line over it, so the cursor is easy to find. */}
+              {editingHere ? (
+                <Text color="claude" bold>{`▶ ${hint(current, true)}`}</Text>
               ) : (
-                <Text color="error">{refused}</Text>
+                <Text dimColor>{hint(current, false)}</Text>
               )}
+              <Box
+                borderStyle="round"
+                borderColor={editingHere ? 'claude' : undefined}
+                borderDimColor={editingHere ? undefined : true}
+                paddingX={1}
+              >
+                <Input
+                  key={EDITOR}
+                  label={current.name}
+                  value={typeof row.value === 'string' || typeof row.value === 'number' ? String(row.value) : ''}
+                  placeholder={
+                    row.kind === 'number'
+                      ? `a whole number, ${(RANGES[current.field] ?? [0, 0]).join('-')}`
+                      : 'text, or empty for none'
+                  }
+                  onSubmit={value => void submit($, current, value)}
+                />
+              </Box>
+              {refused === '' ? null : <Text color="error">{refused}</Text>}
             </Box>
           ) : (
             <Text dimColor>{hint(current, false)}</Text>
@@ -857,15 +884,19 @@ export const register: Register = (on, options) => {
       </Box>
     )
 
-    // The settings as the band reads them: the rows' saved values.
+    // Bottom: the band as these settings draw it, cut to the section.
     const now = settings(Object.fromEntries(list.map(one => [one.field, one.row.value])))
+    const lines = previewLines(now)
+    // The title rule and a blank line under it take two rows.
+    const room = SECTION_ROWS - 2
+    const shownLines = lines.length > room ? [...lines.slice(0, room - 1), { text: `… ${lines.length - room + 1} more lines`, dim: true }] : lines
     const preview = (
-      <Box flexDirection="column" marginTop={1}>
-        <Text dimColor>{'─'.repeat(Math.max(1, e.props.bodyColumns))}</Text>
-        <Text bold>
-          Preview <Text dimColor>(sample suggestions with your settings{now.optionMode === 'up-to' ? '; up-to often shows fewer' : ''})</Text>
+      <Box flexDirection="column" height={SECTION_ROWS} overflow="hidden" flexShrink={0}>
+        <Text dimColor>
+          {rule(`Preview: sample suggestions with your settings${now.optionMode === 'up-to' ? ' (up-to often shows fewer)' : ''}`)}
         </Text>
-        {previewLines(now).map((line, index) => (
+        <Text> </Text>
+        {shownLines.map((line, index) => (
           <Text key={`preview-${index}`} dimColor={line.dim}>
             {line.text}
           </Text>

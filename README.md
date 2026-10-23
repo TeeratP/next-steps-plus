@@ -105,7 +105,7 @@ prompt box (Tab takes it): Commit the change with a short message describing it.
 - Numbers are checked before they're saved: a value that isn't a whole number in the setting's range (Max suggestions: 1–8) stays in the box with the reason in red, and nothing changes.
 - On a choice, a digit picks an option directly (`1: label  2: label+prompt  3: prompt`); ✓ marks the current one.
 - After each change the pane keeps the keyboard and stays on the same setting.
-- While the cursor is in a box, the setting's row in the list says `editing below ↓`; it shows the value again once you save or move back up.
+- While the cursor is in a box, the box is framed in the accent colour and the setting's row in the list says `editing below ↓`; it shows the value again once you save or move back up.
 - Esc in a box goes back to the list without saving; Esc on the list closes the pane.
 - The preview at the bottom changes as soon as you change a setting.
 - If the pane opens while the prompt box has text, your keys stay in the prompt (the pane says so at the bottom). Press ctrl+x, then Tab, to move them to the pane; Esc hands them back.
@@ -141,6 +141,8 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 - Settings pane: a setting's row says `editing below ↓` while the cursor is in its box.
 - Esc in a box goes back to the list instead of closing the pane; the hint under the box says so.
 - A preview at the bottom of the pane shows the suggestion list as your settings draw it.
+- The three parts (settings, the selected setting, the preview) have the same fixed height; a preview too long for its part ends with "… n more lines".
+- While you type, the box is framed in the accent colour with a bold "▶ Type …" line over it, and the row's `editing below ↓` is in the same colour, so the cursor is easy to find.
 
 ### v0.1.16
 

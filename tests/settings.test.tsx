@@ -57,7 +57,7 @@ test('shows the selected setting in full on the right', async ($, on) => {
   settings(on)
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /one press fills one/ }))?.text).toContain('multi: pick several.')
-  expect((await ui.find({ type: 'Text', text: /Default:/ }))?.text).toBe('Default: single (same as the original next-steps)')
+  expect((await ui.find({ type: 'Text', text: /Default:/ }))?.text).toBe('Now: single · Default: single (same as the original next-steps)')
   await ui.unmount()
 })
 
@@ -66,7 +66,7 @@ test('moving the focus selects that row', async ($, on) => {
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   await focus($, 'extraInstructions')
   expect((await ui.find({ type: 'Text', text: /Your own preferences/ }))?.text).toBeDefined()
-  expect((await ui.find({ type: 'Text', text: /Default:/ }))?.text).toBe('Default: none (new in next-steps-plus)')
+  expect((await ui.find({ type: 'Text', text: /Default:/ }))?.text).toBe('Now: (none) · Default: none (new in next-steps-plus)')
   await ui.unmount()
 })
 
@@ -126,7 +126,7 @@ test('a long value is cut in the list and shown whole below', async ($, on) => {
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 'extraInstructions' }))?.text).toContain('Do these, you prioritiz…')
   await focus($, 'extraInstructions')
-  expect((await ui.find({ type: 'Text', text: /^Now:/ }))?.text).toBe('Now: Do these, you prioritize and order them optimally')
+  expect((await ui.find({ type: 'Text', text: /^Now:/ }))?.text).toBe('Now: Do these, you prioritize and order them optimally · Default: none (new in next-steps-plus)')
   ROWS[3] = row('extraInstructions', 'Extra instructions (default: none)', 'text', '', 'Your own preferences for the suggestions.')
   await ui.unmount()
 })
@@ -201,7 +201,7 @@ test('the row says "editing below" while the cursor is in its box', async ($, on
   await ui.press({ key: 'labelChars' })
   expect((await ui.find({ type: 'Button', key: 'labelChars' }))?.text).toMatch(MARK)
   expect((await ui.find({ type: 'Text', text: /Esc: back to the list/ }))?.text).toBe(
-    'Type a whole number 20-300, then Enter to save · Esc: back to the list',
+    '▶ Type a whole number 20-300, then Enter to save · Esc: back to the list',
   )
   // Moving up to another row shows the value again.
   await focus($, 'selectMode')
@@ -250,6 +250,17 @@ test('the preview follows multi-select and display settings', async ($, on) => {
   expect((await ui.find({ type: 'Text', text: /^ {2}3: / }))?.text).toBe('  3: [ ] /code-review high (runs alone)')
   expect((await ui.find({ type: 'Text', text: /^ {2}1: / }))?.text).toBe('  1: [ ] Run the unit tests in tests/ and fix any failure.')
   expect((await ui.find({ type: 'Text', text: /use selected/ }))?.text).toBe('  8: all except commands   9: use selected   0: dismiss')
+  ROWS.splice(0, ROWS.length, ...saved)
+  await ui.unmount()
+})
+
+test('the preview is cut to its section, saying how much it left out', async ($, on) => {
+  settings(on)
+  const saved = [...ROWS]
+  ROWS.push(row('maxSuggestions', 'Max suggestions (default: 3)', 'number', 8, ''))
+  ROWS.push(row('display', 'Display (default: label)', 'choice', 'label+prompt', '', ['label', 'label+prompt', 'prompt']))
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /more lines$/ }))?.text).toMatch(/^… \d+ more lines$/)
   ROWS.splice(0, ROWS.length, ...saved)
   await ui.unmount()
 })
