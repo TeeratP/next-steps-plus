@@ -145,10 +145,9 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 
 ## Changelog
 
-### v0.1.20 (not released yet)
+### v0.1.20
 
 - The 8 key says what it does: `8: select all except commands` (or `select all` when no command is listed) and `8: select recommended`.
-
 - Correction: Claude Code's `promptSuggestionEnabled` does not affect the plugin's ghost text, so the list shows `Tab or 9` / `Tab/9` whenever the plugin's `ghostText` is on, and the preview no longer says the ghost text is blocked. (v0.1.18 and v0.1.19 wrongly said it needed that setting.)
 
 ### v0.1.19
