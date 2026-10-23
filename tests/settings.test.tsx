@@ -303,14 +303,11 @@ test('each section opens with a plain line, its title on the row under it', asyn
   await ui.unmount()
 })
 
-test('with Claude Code prompt suggestions off, the box shows the faint text it would show, and why it does not', async ($, on) => {
+test("Claude Code's promptSuggestionEnabled does not change the plugin's ghost text", async ($, on) => {
   settings(on)
   on('settings.read', () => ({ value: { promptSuggestionEnabled: false } }))
   const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
-  expect((await ui.find({ type: 'Text', text: /your prompt box/ }))?.text).toBe(
-    "  ↑ your prompt box would show this faint text, but promptSuggestionEnabled is false in your Claude Code settings, so it doesn't",
-  )
-  // The sample faint text is still drawn, so the person sees what it would be.
+  expect((await ui.find({ type: 'Text', text: /your prompt box/ }))?.text).toBe('  ↑ your prompt box: faint ghost text, Tab accepts it')
   expect((await ui.find({ type: 'Text', text: /^> / }))?.text).toBe('> Commit the change with a short message describing it.')
   await ui.unmount()
 })

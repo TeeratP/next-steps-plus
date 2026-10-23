@@ -239,8 +239,7 @@ test('Tab takes the picks: the ghost text follows what is picked', MULTI, async 
   await ui.unmount()
 })
 
-test('the hint leaves Tab out when Claude Code shows no ghost text', MULTI, async ($, on) => {
-  on('settings.read', () => ({ value: { promptSuggestionEnabled: false } }))
+test("the hint leaves Tab out when the plugin's ghost text is off", { options: { selectMode: 'multi', ghostText: false } }, async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: type numbers to pick, 9 to use them, 0 to dismiss')

@@ -40,18 +40,6 @@ To update later without restarting: run `claude plugin marketplace update next-s
 
 If you have the original next-steps installed, turn it off (`/plugin` → next-steps → Disable), or you will see two suggestion lists.
 
-### Recommended: turn on Claude Code's prompt suggestions
-
-We encourage turning on Claude Code's own `promptSuggestionEnabled` setting. The plugin's ghost text (the faint suggestion in the empty prompt box) only shows while it's on, and with it Tab takes the recommended suggestion, or in multi mode exactly the ones you picked. Without it, ghost text never appears, and you use the number keys and `9` instead.
-
-Turn it on in `/config`, or in `~/.claude/settings.json`:
-
-```json
-"promptSuggestionEnabled": true
-```
-
-The `/next-steps-plus` settings pane shows whether it's on: the preview's prompt box says so when it's off.
-
 ## Picking several suggestions
 
 Set `selectMode` to `multi`. Each number key then ticks or unticks a suggestion, and `9` (or Tab, see below) puts all the ticked ones in the prompt box together:
@@ -74,7 +62,7 @@ Do these in order:
 ```
 
 - `8` ticks every suggestion except slash commands (or, with `eightPicks: recommended`, the ones marked (Recommended)); press it again to untick them. (That's why there are at most 7 suggestions.)
-- **Tab** works like `9`: the faint ghost text in the empty prompt box always follows your ticks (the recommended suggestion with nothing ticked, that one with one ticked, the numbered draft with several), so Claude Code's own Tab takes exactly that. It needs ghost text to show (`ghostText` on, and Claude Code's `promptSuggestionEnabled` on); otherwise the list says only `9`.
+- **Tab** works like `9`: the faint ghost text in the empty prompt box always follows your ticks (the recommended suggestion with nothing ticked, that one with one ticked, the numbered draft with several), so Claude Code's own Tab takes exactly that. It needs the plugin's `ghostText` setting on; with it off, the list says only `9`.
 - A slash command (`/code-review high`) can only be used on its own, because anything after it would be read as its arguments. Ticking it unticks the others, and ticking anything else unticks it.
 
 ## Settings
@@ -144,7 +132,7 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | `promptStyle` | `standard`\* | How long the suggested prompts are. `standard`: no guidance. `detailed`: 1–3 sentences saying what to do, where, and what done looks like. `brief`: one short sentence. With `display: prompt`, `standard` or `brief` fits more suggestions |
 | `combineHeader` | `Do these in order:` | `multi` only: the line above the list when several are picked; leave empty for none |
 | `extraInstructions` | none | Your own wishes for the suggestions, e.g. `write prompts in Thai` |
-| `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it. It only shows while Claude Code's own `promptSuggestionEnabled` is on (the preview says when it isn't) |
+| `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it (in multi mode, it follows your picks) |
 | `markRecommended` | on | Put (Recommended) after the step the model would most advise now, usually one; ghost text then offers that step |
 | `suggestSkills` | on\* | Let suggestions be your skills and slash commands |
 | `minAnswerChars` | `80`\* | No suggestions after answers shorter than this many characters |
@@ -156,6 +144,10 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.20 (not released yet)
+
+- Correction: Claude Code's `promptSuggestionEnabled` does not affect the plugin's ghost text, so the list shows `Tab or 9` / `Tab/9` whenever the plugin's `ghostText` is on, and the preview no longer says the ghost text is blocked. (v0.1.18 and v0.1.19 wrongly said it needed that setting.)
 
 ### v0.1.19
 

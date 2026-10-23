@@ -417,15 +417,13 @@ const SAMPLES: readonly Suggestion[] = [
 ]
 
 // The suggestion band as these settings would draw it, line by line, as
-// plain text: a picture to read, with nothing to press. `claudeSuggests` is
-// Claude Code's own promptSuggestionEnabled: when it is false the faint
-// ghost text is not shown, whatever the plugin's ghostText says.
+// plain text: a picture to read, with nothing to press.
 type PreviewLine = { text: string; dim: boolean }
 // What the empty prompt box shows under the band: the faint ghost text, or
 // why there is none.
-type PreviewGhost = { text: string; blocked?: string } | { off: string }
+type PreviewGhost = { text: string } | { off: string }
 
-function previewLines(s: Settings, claudeSuggests: boolean): { lines: PreviewLine[]; ghost: PreviewGhost } {
+function previewLines(s: Settings): { lines: PreviewLine[]; ghost: PreviewGhost } {
   const multi = s.selectMode === 'multi'
   const items = SAMPLES.slice(0, s.maxSuggestions).map(sample => {
     const prompt = clean(sample.prompt, s.promptChars)
@@ -435,7 +433,7 @@ function previewLines(s: Settings, claudeSuggests: boolean): { lines: PreviewLin
   const lines: PreviewLine[] = [
     {
       text: multi
-        ? `next: type numbers to pick, ${s.ghostText && claudeSuggests ? 'Tab or 9' : '9'} to use them, 0 to dismiss`
+        ? `next: type numbers to pick, ${s.ghostText ? 'Tab or 9' : '9'} to use them, 0 to dismiss`
         : `next: type ${items.length === 1 ? '1' : `1-${items.length}`} to put one in the prompt box, 0 to dismiss`,
       dim: true,
     },
@@ -449,14 +447,10 @@ function previewLines(s: Settings, claudeSuggests: boolean): { lines: PreviewLin
     }
   })
   const eight = s.eightPicks === 'recommended' ? (items.some(item => item.recommended) ? '8: recommended   ' : '') : '8: all except commands   '
-  const use = s.ghostText && claudeSuggests ? 'Tab/9' : '9'
+  const use = s.ghostText ? 'Tab/9' : '9'
   lines.push({ text: multi ? `  ${eight}${use}: use selected   0: dismiss` : '  0: dismiss', dim: false })
   const top = items.find(item => item.recommended) ?? items[0]
-  const ghost: PreviewGhost = !s.ghostText
-    ? { off: 'the Tab ghost text setting is off' }
-    : !claudeSuggests
-      ? { text: top?.prompt ?? '', blocked: 'promptSuggestionEnabled is false in your Claude Code settings' }
-      : { text: top?.prompt ?? '' }
+  const ghost: PreviewGhost = s.ghostText ? { text: top?.prompt ?? '' } : { off: 'the Tab ghost text setting is off' }
   return { lines, ghost }
 }
 const selected = atom({ plugin: 'next-steps-plus', key: 'selected' } as const, 'selectMode')
@@ -725,9 +719,8 @@ export const register: Register = (on, options) => {
 
     const { items: offered, picked } = view
     const multi = s.selectMode === 'multi'
-    // Tab takes the picks only through ghost text, which shows only while
-    // the plugin's ghostText and Claude Code's promptSuggestionEnabled are on.
-    const tabTakes = s.ghostText && (await $.settings.read({ key: 'promptSuggestionEnabled' }).catch(() => undefined)) !== false
+    // Tab takes the picks through the ghost text, while ghostText is on.
+    const tabTakes = s.ghostText
     const labelIndent = 2 + 3 + (multi ? 4 : 0)
     const previewIndent = 2 + (multi ? 7 : 3)
     const withPreview = (item: Suggestion) => s.display === 'label+prompt' && item.prompt !== item.label
@@ -980,9 +973,7 @@ export const register: Register = (on, options) => {
 
     // Bottom: the band as these settings draw it, cut to the section.
     const now = settings(Object.fromEntries(list.map(one => [one.field, one.row.value])))
-    // Claude Code's own switch for prompt-box suggestions; unset means on.
-    const claudeSuggests = (await $.settings.read({ key: 'promptSuggestionEnabled' }).catch(() => undefined)) !== false
-    const { lines, ghost } = previewLines(now, claudeSuggests)
+    const { lines, ghost } = previewLines(now)
     // The line, the title and a blank row take three rows, and the prompt-box
     // picture under the band five (a gap, its frame of three, its caption).
     const room = Math.max(1, sectionRows - 3 - GHOST_ROWS)
@@ -1019,11 +1010,9 @@ export const register: Register = (on, options) => {
             )}
           </Box>
           <Text dimColor>
-            {!('text' in ghost)
-              ? `  ↑ your prompt box: no ghost text (${ghost.off})`
-              : ghost.blocked === undefined
-                ? '  ↑ your prompt box: faint ghost text, Tab accepts it'
-                : `  ↑ your prompt box would show this faint text, but ${ghost.blocked}, so it doesn't`}
+            {'text' in ghost
+              ? '  ↑ your prompt box: faint ghost text, Tab accepts it'
+              : `  ↑ your prompt box: no ghost text (${ghost.off})`}
           </Text>
         </Box>
       </Box>
