@@ -1,86 +1,100 @@
 {
   "name": "next-steps-plus",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Suggests next prompts above the input after each turn, with fuller prompts, a preview of each, and multi-select. A configurable fork of next-steps.",
-  "author": { "name": "Teerat Pipitcharulerd" },
+  "author": {
+    "name": "Teerat Pipitcharulerd"
+  },
   "license": "MIT",
-  "keywords": ["suggestions", "next-steps", "prompt", "function-hooks", "ui"],
+  "keywords": [
+    "suggestions",
+    "next-steps",
+    "prompt",
+    "function-hooks",
+    "ui"
+  ],
   "userConfig": {
     "selectMode": {
       "type": "string",
-      "title": "Selection mode",
+      "title": "Selection mode (default: multi)",
       "description": "multi: number keys toggle suggestions and 9 puts all picked ones in the prompt box. single: a number key puts that one suggestion in the prompt box (the original behaviour).",
-      "options": ["multi", "single"],
+      "options": [
+        "multi",
+        "single"
+      ],
       "required": false,
       "default": "multi"
     },
     "maxSuggestions": {
       "type": "number",
-      "title": "Number of suggestions",
+      "title": "Number of suggestions (default: 5)",
       "description": "Show up to this many suggestions (1-8).",
       "required": false,
       "default": 5
     },
     "labelChars": {
       "type": "number",
-      "title": "Label length",
+      "title": "Label length (default: 120)",
       "description": "Longest button label, in characters (20-300).",
       "required": false,
       "default": 120
     },
     "promptChars": {
       "type": "number",
-      "title": "Prompt length",
+      "title": "Prompt length (default: 1500)",
       "description": "Longest suggested prompt, in characters (200-4000).",
       "required": false,
       "default": 1500
     },
     "previewChars": {
       "type": "number",
-      "title": "Preview length",
+      "title": "Preview length (default: 0 = off)",
       "description": "Show this many characters of each full prompt under its label, e.g. 240. 0 (the default) hides the preview.",
       "required": false,
       "default": 0
     },
     "promptStyle": {
       "type": "string",
-      "title": "Prompt style",
+      "title": "Prompt style (default: detailed)",
       "description": "detailed: 1-3 sentences with scope and what done looks like. brief: one short sentence.",
-      "options": ["detailed", "brief"],
+      "options": [
+        "detailed",
+        "brief"
+      ],
       "required": false,
       "default": "detailed"
     },
     "combineHeader": {
       "type": "string",
-      "title": "Header for several picks",
+      "title": "Header for several picks (default: \"Do these in order:\")",
       "description": "Line put above the numbered list when several suggestions are picked. Empty for none.",
       "required": false,
       "default": "Do these in order:"
     },
     "extraInstructions": {
       "type": "string",
-      "title": "Extra instructions",
+      "title": "Extra instructions (default: none)",
       "description": "Your own preferences for the suggestions, e.g. 'write prompts in Thai' or 'always include a test step'.",
       "required": false,
       "default": ""
     },
     "ghostText": {
       "type": "boolean",
-      "title": "Tab ghost text",
+      "title": "Tab ghost text (default: on)",
       "description": "Also offer the top suggestion as dim ghost text in the prompt box, taken with Tab.",
       "required": false,
       "default": true
     },
     "suggestSkills": {
       "type": "boolean",
-      "title": "Suggest skills and slash commands",
+      "title": "Suggest skills and slash commands (default: on)",
       "description": "Tell the suggester which skills and slash commands this session has, so a suggestion can be one of them.",
       "required": false,
       "default": true
     },
     "minAnswerChars": {
       "type": "number",
-      "title": "Shortest answer to suggest after",
+      "title": "Shortest answer to suggest after (default: 80)",
       "description": "Skip suggestions after answers shorter than this many characters.",
       "required": false,
       "default": 80
