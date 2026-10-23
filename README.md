@@ -66,25 +66,34 @@ Do these in order:
 
 Change them on the install screen, in `/config`, or in the plugin's own settings pane: type `/next-steps-plus`. A change takes effect right away, and all three show and change the same values.
 
-The settings pane lists every setting on the left and shows the selected one in full on the right: its description, its current value, and its default.
+The settings pane lists every setting with its value, and shows the selected one in full below the list: its description, its current value, and its default.
 
 ```
-  Selection mode          single   │ Max suggestions
-▸ Max suggestions         3        │ Show at most this many suggestions (1-8).
-  Option mode             up-to    │ Option mode decides whether the list may be
-  Label length            48       │ shorter.
-  Prompt length           600      │ Now: 3
-  Display                 label    │ Default: 3 (same as the original next-steps)
-  …                                │
-                                   │ [ Max suggestions: 3 ]
+  Selection mode                     single
+▸ Max suggestions                    3
+  Option mode                        up-to
+  Label length                       48
+  Prompt length                      600
+  Display                            label
+  …
+──────────────────────────────────────────────────────────────
+Max suggestions
+Show at most this many suggestions (1-8). Option mode decides
+whether the list may be shorter.
+
+Now: 3
+Default: 3 (same as the original next-steps)
+
+[ Max suggestions: 3 ]
+
 ↑↓ move · Enter change · Esc close
 ```
 
 - ↑↓ (or Tab) moves between settings.
-- Enter turns a switch on or off, moves a choice to its next option, or, for a number or text, puts the cursor in the box on the right; type the new value and press Enter again to save.
+- Enter turns a switch on or off, moves a choice to its next option, or, for a number or text, puts the cursor in the box below; type the new value and press Enter again to save.
 - Esc closes the pane.
 
-The pane opens beside the conversation in a wide terminal, or above the prompt otherwise; in a narrow pane the description shows under the list.
+The pane opens beside the conversation in a wide terminal, or above the prompt otherwise. Long values are shortened with … in the list; the full value shows below as Now.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
@@ -108,6 +117,11 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
+
+### v0.1.11
+
+- The settings pane puts the selected setting's description below the list, at full width, instead of beside it.
+- Long values are shortened with … in the list, and the pane asks for enough height to show every setting.
 
 ### v0.1.10
 

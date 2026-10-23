@@ -75,6 +75,17 @@ test('Enter flips a switch and steps a choice', async ($, on) => {
   await ui.unmount()
 })
 
+test('a long value is cut in the list and shown whole below', async ($, on) => {
+  settings(on)
+  ROWS[3] = row('extraInstructions', 'Extra instructions (default: none)', 'text', 'Do these, you prioritize and order them optimally', 'Your own preferences for the suggestions.')
+  const ui = await $.ui.mount({ ...pane(96), surface: 'terminal' })
+  expect((await ui.find({ type: 'Button', key: 'extraInstructions' }))?.text).toContain('Do these, you prioritiz…')
+  await focus($, 'extraInstructions')
+  expect((await ui.find({ type: 'Text', text: /^Now:/ }))?.text).toBe('Now: Do these, you prioritize and order them optimally')
+  ROWS[3] = row('extraInstructions', 'Extra instructions (default: none)', 'text', '', 'Your own preferences for the suggestions.')
+  await ui.unmount()
+})
+
 test('a narrow pane stacks the description under the list', async ($, on) => {
   settings(on)
   const ui = await $.ui.mount({ ...pane(50), surface: 'terminal' })

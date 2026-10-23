@@ -337,7 +337,11 @@ const FIELDS = [
 // Fields whose default is the original next-steps' (the README's * marks).
 const NEW_FIELDS: ReadonlySet<string> = new Set(['optionMode', 'combineHeader', 'extraInstructions'])
 const EDITOR = 'edit'
-const WIDE_COLUMNS = 72
+// A list value longer than this is cut with an ellipsis; "Now:" shows it whole.
+const LIST_VALUE_MAX = 24
+// Rows the pane asks for beyond one per setting: the rule, the details, the
+// editor and the keys line, so every row shows without scrolling.
+const PANE_EXTRA_ROWS = 16
 const selected = atom({ plugin: 'next-steps-plus', key: 'selected' } as const, 'selectMode')
 
 type Setting = { field: string; name: string; fallback: string; row: ConfigRow }
@@ -427,7 +431,8 @@ function openSettings($: EngineInterface) {
     focus: true,
     closeOnEscape: true,
     holdToasts: true,
-    columns: 96,
+    rows: FIELDS.length + PANE_EXTRA_ROWS,
+    columns: 72,
   })
 }
 
@@ -601,14 +606,14 @@ export const register: Register = (on, options) => {
     const chosen = await read($, selected)
     const current = list.find(one => one.field === chosen) ?? list[0]
     if (current === undefined) return <Text dimColor>No next-steps-plus settings found; try /config.</Text>
-    const wide = e.props.bodyColumns >= WIDE_COLUMNS
+    // The list on top, the selected setting in full below it: a pane docked
+    // beside the transcript is too narrow for two readable columns.
     const nameWidth = Math.max(...list.map(one => one.name.length)) + 2
-    const leftWidth = wide ? Math.min(nameWidth + 14, Math.floor(e.props.bodyColumns / 2)) : e.props.bodyColumns
     const { row } = current
     const editable = row.kind === 'number' || row.kind === 'text'
 
     const rows = (
-      <Box flexDirection="column" width={leftWidth} flexShrink={0}>
+      <Box flexDirection="column">
         {list.map(one => (
           <Button
             key={one.field}
@@ -617,14 +622,15 @@ export const register: Register = (on, options) => {
             onPress={() => void change($, one)}
           >
             {`${one.field === current.field ? '▸ ' : '  '}${one.name.padEnd(nameWidth)}`}
-            <Text dimColor>{shown(one.row.value)}</Text>
+            <Text dimColor>{clean(shown(one.row.value), LIST_VALUE_MAX)}</Text>
           </Button>
         ))}
       </Box>
     )
 
     const details = (
-      <Box flexDirection="column" flexGrow={1} marginLeft={wide ? 2 : 0} marginTop={wide ? 0 : 1}>
+      <Box flexDirection="column">
+        <Text dimColor>{'─'.repeat(Math.max(1, e.props.bodyColumns))}</Text>
         <Text bold>{current.name}</Text>
         <Text>{row.description ?? ''}</Text>
         <Box marginTop={1} flexDirection="column">
@@ -653,10 +659,8 @@ export const register: Register = (on, options) => {
 
     return (
       <Box flexDirection="column">
-        <Box flexDirection={wide ? 'row' : 'column'}>
-          {rows}
-          {details}
-        </Box>
+        {rows}
+        {details}
         <Box marginTop={1}>
           <Text dimColor>↑↓ move · Enter change · Esc close</Text>
         </Box>
