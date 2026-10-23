@@ -1,6 +1,6 @@
 # next-steps-plus
 
-After each turn, suggests next prompts above the input box. Out of the box it behaves like the original [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps): three short suggestions, and a number key puts one in the prompt box.
+After each answer, Claude Code suggests what you might ask next, shown above the prompt box. Type a number to put that suggestion in the prompt box, edit it if you like, and press Enter. The plugin never sends a prompt on its own.
 
 ```
 next: type 1-3 to put one in the prompt box, 0 to dismiss
@@ -10,13 +10,31 @@ next: type 1-3 to put one in the prompt box, 0 to dismiss
   0: dismiss
 ```
 
-Press `1`, `2` or `3` from an empty prompt box (or click one) and that prompt is written into the box as a draft. Edit it, then press Enter yourself. The plugin never submits a prompt on its own. `0` dismisses.
+Out of the box it works like the original [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) plugin. What it adds is [settings](#settings): more and longer suggestions, a preview of each full prompt, and picking several suggestions at once.
 
-What it adds is settings (see [Options](#options)): more and longer suggestions, a preview of each full prompt, and multi-select.
+## Install
 
-## Multi-select
+At the prompt of a terminal session:
 
-Set `selectMode` to `multi` to pick several suggestions and have them written into the prompt box as one numbered draft:
+```
+/plugin install next-steps-plus --marketplace TeeratP/next-steps-plus
+```
+
+Answer `y` to add the marketplace, then pick a scope (user is first). The install screen then shows the settings; you can skip them all, since each title shows its default.
+
+From a shell instead:
+
+```
+claude plugin install next-steps-plus --marketplace TeeratP/next-steps-plus
+```
+
+In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `TeeratP/next-steps-plus`, then Add plugin.
+
+If you have the original next-steps installed, turn it off (`/plugin` → next-steps → Disable), or you will see two suggestion lists.
+
+## Picking several suggestions
+
+Set `selectMode` to `multi`. Each number key then ticks or unticks a suggestion, and `9` puts all the ticked ones in the prompt box together:
 
 ```
 next: type numbers to pick, 9 to use them, 0 to dismiss
@@ -27,7 +45,7 @@ next: type numbers to pick, 9 to use them, 0 to dismiss
   8: all except commands   9: use selected (2)   0: dismiss
 ```
 
-Press `1`–`8` from an empty prompt box (or click) to toggle a suggestion. The number in brackets is the order you picked it in. Press `9` to write the picked prompts into the box:
+The number in brackets is the order you ticked them in, and that is the order they are written in. Here, pressing `3`, then `1`, then `9` writes:
 
 ```
 Do these in order:
@@ -35,86 +53,52 @@ Do these in order:
 2. Run the unit tests in tests/ and fix any failure, then re-run until green.
 ```
 
-Edit the draft, then press Enter yourself.
+- `8` ticks every suggestion except slash commands; press it again to untick them. When there are eight suggestions, `8` is the eighth one, so click **all** instead.
+- A slash command (`/code-review high`) can only be used on its own, because anything after it would be read as its arguments. Ticking it unticks the others, and ticking anything else unticks it.
 
-A slash-command suggestion runs alone, because the rest of a prompt would become its arguments. Picking one clears your other picks, and picking anything else clears it.
+## Settings
 
-Press `8` (**all**) to pick every suggestion except slash commands in one go, in the order shown; press it again to clear them. With eight suggestions, `8` belongs to the eighth one, so click **all** instead. It shows in `multi` mode when there are at least two non-command suggestions.
+Change them on the install screen, or later in `/config`. A change takes effect right away.
 
-## Based on next-steps
-
-This is a fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community), commit `f60f045`. The suggestion engine is the original's: forking the session with `$.model.fork`, listing skills, cleaning the text, and dropping unknown commands.
-
-What you can change:
-
-| | Default | Can be set to |
+| Setting | Default | What it does |
 | --- | --- | --- |
-| Suggestions | 3\* | up to 8 |
-| Button label | 48 chars\* | up to 300 |
-| Prompt | 600 chars\* | up to 4000; `detailed` or `brief` style |
-| Full prompt visible before picking | no\* | full prompt dimmed under each label (`previewFlag`) |
-| Picking | one\* | several, plus pick all (`selectMode: multi`) |
-| Settings | 11 | |
+| `selectMode` | `single`\* | `single`: a number key puts that one suggestion in the prompt box. `multi`: pick several, as [above](#picking-several-suggestions) |
+| `maxSuggestions` | `3`\* | How many suggestions to show, 1–8 |
+| `labelChars` | `48`\* | Longest suggestion label, 20–300 characters |
+| `promptChars` | `600`\* | Longest suggested prompt, 200–4000 characters |
+| `previewFlag` | off\* | Show each suggestion's full prompt, dimmed, under its label |
+| `promptStyle` | `standard`\* | How long the suggested prompts are. `standard`: no guidance. `detailed`: 1–3 sentences saying what to do, where, and what done looks like. `brief`: one short sentence |
+| `combineHeader` | `Do these in order:` | `multi` only: the line above the list when several are picked; leave empty for none |
+| `extraInstructions` | none | Your own wishes for the suggestions, e.g. `write prompts in Thai` |
+| `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it |
+| `suggestSkills` | on\* | Let suggestions be your skills and slash commands |
+| `minAnswerChars` | `80`\* | No suggestions after answers shorter than this many characters |
 
-\* Same as the original next-steps.
+\* Same as the original next-steps. Settings without \* are new in this plugin.
 
-## Install
+## Credits
 
-At the prompt of a terminal session:
-
-```
-/plugin install next-steps-plus --marketplace TeeratP/next-steps-plus
-```
-
-Answer `y` to add the marketplace, then pick a scope (user is first).
-
-From a shell:
-
-```
-claude plugin install next-steps-plus --marketplace TeeratP/next-steps-plus
-```
-
-In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `TeeratP/next-steps-plus`, then Add plugin.
-
-Turn off the original first if you have it, or both will draw a band: `/plugin` → next-steps → Disable.
-
-## Options
-
-Set them on the install screen or later in `/config` (or under `pluginConfigs` in settings). Both screens show each default at the end of the setting's title, e.g. "Label length (default: 48)", so you can leave anything you don't need to change. A change reloads the plugin.
-
-| Option | Default | What it does |
-| --- | --- | --- |
-| `selectMode` | `single` | `single`: a number key fills that one suggestion (the original behaviour). `multi`: number keys toggle, `8` picks all but commands, `9` fills all picks |
-| `maxSuggestions` | `3` | How many suggestions, 1–8 (`9` and `0` are taken; at 8, **all** is click-only) |
-| `labelChars` | `48` | Longest button label, 20–300 |
-| `promptChars` | `600` | Longest suggested prompt, 200–4000 |
-| `previewFlag` | `false` | Show each suggestion's full prompt dimmed under its label |
-| `promptStyle` | `standard` | `standard`: no length guidance, as the original. `detailed`: 1–3 sentences with scope and what done looks like. `brief`: one short sentence |
-| `combineHeader` | `Do these in order:` | In `multi` mode, the line above the numbered list when several are picked; empty for none |
-| `extraInstructions` | (empty) | Your own guidance for the suggester, e.g. `write prompts in Thai` |
-| `ghostText` | `true` | Also show the top suggestion as Tab-to-take ghost text in the box |
-| `suggestSkills` | `true` | Tell the suggester which skills and slash commands the session has |
-| `minAnswerChars` | `80` | Skip suggestions after answers shorter than this |
+A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
 
 ## Changelog
 
 ### v0.1.4
 
-- `previewChars` is replaced by `previewFlag`, an on/off switch. When on, each suggestion's full prompt shows dimmed under its label. A saved `previewChars` value is ignored.
+- `previewChars` (a length) is replaced by `previewFlag` (on/off). When on, the whole prompt shows.
 
 ### v0.1.3
 
-- The list now starts with a hint saying which number keys to type.
+- The list starts with a hint saying which number keys to type.
 
 ### v0.1.2
 
-- Defaults now match the original next-steps: `single` select, 3 suggestions, 48-char labels, 600-char prompts, and a new `standard` prompt style (no length guidance). Turn on the rest in `/config`.
+- Defaults now match the original next-steps: pick one, 3 suggestions, 48-character labels, 600-character prompts, and the new `standard` prompt style.
 
 ### v0.1.1
 
-- Multi-select: number keys toggle suggestions, `9` fills every pick as one numbered draft; slash commands run alone.
-- Pick all: `8` (or **all**) picks every suggestion except slash commands; press again to clear.
-- Prompt preview off by default (`previewChars: 0`).
+- Multi-select: tick several suggestions with number keys and write them all with `9`.
+- `8` ticks every suggestion except slash commands.
+- Prompt preview off by default.
 - The install screen and `/config` show each setting's default in its title.
 
 ## License
