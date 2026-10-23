@@ -143,14 +143,13 @@ A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tr
 
 ## Changelog
 
-### v0.1.17 (not released yet)
+### v0.1.17
 
 - Settings pane: a setting's row says `editing below ↓` while the cursor is in its box.
 - Esc in a box goes back to the list instead of closing the pane; the hint under the box says so.
 - A preview at the bottom of the pane shows the suggestion list as your settings draw it.
-- The three parts (settings, the selected setting, the preview) have the same fixed height; a preview too long for its part ends with "… n more lines".
 - While you type, the box is framed in the accent colour with a bold "▶ Type …" line over it, and the row's `editing below ↓` is in the same colour, so the cursor is easy to find.
-- The three parts share the pane's height equally, whatever room it has; in a short pane the settings list scrolls with the selection (`↑ n more` / `↓ n more`).
+- The three parts (settings, the selected setting, the preview) share the pane's height equally, whatever room it has; in a short pane the settings list scrolls with the selection (`↑ n more` / `↓ n more`), and a preview too long for its part ends with "… n more lines".
 - The setting's name is outside the box, to its left; the box holds only the value.
 - Each part opens with a plain line, its title (Settings, the setting's name, Preview) on the row under it.
 - Under the preview, a small picture of your prompt box shows the faint ghost text (grey italics), or an empty box with the reason it's off (the `ghostText` setting, or Claude Code's `promptSuggestionEnabled` set to false).
