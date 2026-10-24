@@ -1,7 +1,7 @@
 {
   "name": "next-steps-plus",
   "version": "1.0.0",
-  "description": "Suggests next prompts above the input after each turn. Same defaults as next-steps, plus settings for more and longer suggestions, previews, and multi-select.",
+  "description": "Pick many. Tab once. Claude Code suggests your next prompts: tick several, press Tab, and get one numbered prompt. Built on next-steps.",
   "author": {
     "name": "Teerat Pipitcharulerd"
   },

@@ -1,6 +1,6 @@
 {
   "name": "next-steps-plus",
-  "description": "next-steps-plus: configurable, multi-select next-prompt suggestions for Claude Code.",
+  "description": "Pick many. Tab once. Claude Code suggests your next prompts: tick several, press Tab, and get one numbered prompt. Built on next-steps.",
   "owner": { "name": "Teerat Pipitcharulerd" },
   "plugins": [{ "name": "next-steps-plus", "source": "./" }]
 }
