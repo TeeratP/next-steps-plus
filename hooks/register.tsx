@@ -500,30 +500,14 @@ function shown(value: ConfigRow['value']): string {
   return Array.isArray(value) ? value.join(', ') : String(value)
 }
 
-// Each write names its setting as fixed text, so a reader of the source (the
-// plugin directory's scan) can see the plugin only ever sets its own settings.
-function writeSetting($: EngineInterface, field: string, value: ConfigRow['value']) {
-  switch (field) {
-    case 'selectMode': return $.config.set({ key: 'next-steps-plus.selectMode', value })
-    case 'eightPicks': return $.config.set({ key: 'next-steps-plus.eightPicks', value })
-    case 'maxSuggestions': return $.config.set({ key: 'next-steps-plus.maxSuggestions', value })
-    case 'optionMode': return $.config.set({ key: 'next-steps-plus.optionMode', value })
-    case 'labelChars': return $.config.set({ key: 'next-steps-plus.labelChars', value })
-    case 'promptChars': return $.config.set({ key: 'next-steps-plus.promptChars', value })
-    case 'display': return $.config.set({ key: 'next-steps-plus.display', value })
-    case 'promptStyle': return $.config.set({ key: 'next-steps-plus.promptStyle', value })
-    case 'combineHeader': return $.config.set({ key: 'next-steps-plus.combineHeader', value })
-    case 'extraInstructions': return $.config.set({ key: 'next-steps-plus.extraInstructions', value })
-    case 'ghostText': return $.config.set({ key: 'next-steps-plus.ghostText', value })
-    case 'markRecommended': return $.config.set({ key: 'next-steps-plus.markRecommended', value })
-    case 'suggestSkills': return $.config.set({ key: 'next-steps-plus.suggestSkills', value })
-    case 'minAnswerChars': return $.config.set({ key: 'next-steps-plus.minAnswerChars', value })
-    default: return undefined
-  }
-}
+// Saving a setting. The plugin directory reads a settings call only when it
+// is made on a hook's own `$` with the key written out, so each hook that
+// saves writes its own calls, one per setting with the key as fixed text
+// (the pane's in its ui.render hook, the carry-over's in the start hooks),
+// and hands the pane's helpers a `Save` that makes them.
+type Save = (field: string, value: ConfigRow['value']) => Promise<{ deny?: string } | object | undefined>
 
-async function setValue($: EngineInterface, field: string, value: ConfigRow['value']): Promise<void> {
-  const result = await writeSetting($, field, value)
+function reportSave($: EngineInterface, field: string, result: { deny?: string } | object | undefined): void {
   if (result === undefined) return void $.ui.log(`next-steps-plus: no such setting: ${field}`)
   if ('deny' in result && typeof result.deny === 'string') $.ui.toast(`not changed: ${result.deny}`)
 }
@@ -536,11 +520,11 @@ async function refocus($: EngineInterface, field: string): Promise<void> {
   await $.ui.focus({ requestId: PANE, key: field }).catch(() => undefined)
 }
 
-async function pick($: EngineInterface, setting: Setting, value: ConfigRow['value']): Promise<void> {
+async function pick($: EngineInterface, save: Save, setting: Setting, value: ConfigRow['value']): Promise<void> {
   await update($, selected, () => setting.field)
   await update($, editing, () => '')
   if (setting.row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
-  await setValue($, setting.field, value)
+  reportSave($, setting.field, await save(setting.field, value))
   await refocus($, setting.field)
 }
 
@@ -572,13 +556,13 @@ function quickPicks(setting: Setting): ConfigRow['value'][] {
 // Enter on a row: a toggle flips, a choice steps to its next option, and a
 // number or text row hands the keys to the box below it to type in, where
 // the surface has one (`canType`); else it only selects the row.
-async function change($: EngineInterface, setting: Setting, canType = true): Promise<void> {
+async function change($: EngineInterface, save: Save, setting: Setting, canType = true): Promise<void> {
   const { row } = setting
-  if (row.kind === 'boolean') return pick($, setting, !row.value)
+  if (row.kind === 'boolean') return pick($, save, setting, !row.value)
   const options = quickPicks(setting)
   if (options.length > 0) {
     const at = options.findIndex(value => value === row.value)
-    return pick($, setting, options[(at + 1) % options.length] ?? options[0] ?? row.value)
+    return pick($, save, setting, options[(at + 1) % options.length] ?? options[0] ?? row.value)
   }
   await update($, selected, () => setting.field)
   if (row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
@@ -599,7 +583,7 @@ async function leaveBox($: EngineInterface, field: string): Promise<void> {
 
 // Enter in the box: a number is checked before it is saved; a refused one
 // stays in the box with the reason under it.
-async function submit($: EngineInterface, setting: Setting, text: string): Promise<void> {
+async function submit($: EngineInterface, save: Save, setting: Setting, text: string): Promise<void> {
   if (setting.row.kind === 'number') {
     const parsed = parseNumber(setting, text)
     if ('refused' in parsed) {
@@ -607,10 +591,10 @@ async function submit($: EngineInterface, setting: Setting, text: string): Promi
       return
     }
     await update($, refusal, () => '')
-    return pick($, setting, parsed.value)
+    return pick($, save, setting, parsed.value)
   }
   await update($, refusal, () => '')
-  await pick($, setting, text)
+  await pick($, save, setting, text)
 }
 
 // How to change the selected setting, in the surface's terms: keys on the
@@ -653,24 +637,28 @@ const RENAMED: ReadonlyArray<{ from: string; to: string; carry: (value: unknown)
 ]
 let carried = false
 
-async function carryRenamed($: EngineInterface): Promise<void> {
-  if (carried) return
+// The settings to carry to their new names (optionMode and display are the
+// only targets), once per load; the start hooks write them.
+async function renamedToCarry($: EngineInterface): Promise<Array<{ to: string; value: ConfigRow['value'] }>> {
+  if (carried) return []
   carried = true
   const configs = await $.settings.read({ key: 'pluginConfigs' })
-  if (typeof configs !== 'object' || configs === null) return
+  if (typeof configs !== 'object' || configs === null) return []
   const entry = Object.entries(configs).find(([name]) => name.startsWith('next-steps-plus'))?.[1]
   const saved = (entry as { options?: Record<string, unknown> } | undefined)?.options
-  if (saved === undefined) return
+  if (saved === undefined) return []
   const rows = await $.config.list()
   const done = new Set<string>()
+  const writes: Array<{ to: string; value: ConfigRow['value'] }> = []
   for (const { from, to, carry } of RENAMED) {
     if (!(from in saved) || to in saved || done.has(to)) continue
     const value = carry(saved[from])
     const row = rows.find(r => r.key.startsWith('next-steps-plus') && fieldOf(r) === to)
     if (value === undefined || row === undefined) continue
     done.add(to)
-    await setValue($, to, value)
+    writes.push({ to, value: value as ConfigRow['value'] })
   }
+  return writes
 }
 
 // The command is declared at session start, and again at the first turn
@@ -707,7 +695,14 @@ export const register: Register = (on, options) => {
   on('turn.start', async ($, e, next) => {
     if (view.kind !== 'hidden') show($, { kind: 'hidden' })
     await declareCommand($).catch(error => $.ui.log(`could not declare /${COMMAND}: ${String(error)}`))
-    await carryRenamed($).catch(error => $.ui.log(`could not carry renamed settings: ${String(error)}`))
+    const carries = await renamedToCarry($).catch(error => ($.ui.log(`could not carry renamed settings: ${String(error)}`), []))
+    for (const { to, value } of carries) {
+      const result =
+        to === 'optionMode' ? await $.config.set({ key: 'next-steps-plus.optionMode', value })
+        : to === 'display' ? await $.config.set({ key: 'next-steps-plus.display', value })
+        : undefined
+      reportSave($, to, result)
+    }
     return next(e)
   })
 
@@ -856,7 +851,14 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     await declareCommand($).catch(error => $.ui.log(`could not declare /${COMMAND}: ${String(error)}`))
-    await carryRenamed($).catch(error => $.ui.log(`could not carry renamed settings: ${String(error)}`))
+    const carries = await renamedToCarry($).catch(error => ($.ui.log(`could not carry renamed settings: ${String(error)}`), []))
+    for (const { to, value } of carries) {
+      const result =
+        to === 'optionMode' ? await $.config.set({ key: 'next-steps-plus.optionMode', value })
+        : to === 'display' ? await $.config.set({ key: 'next-steps-plus.display', value })
+        : undefined
+      reportSave($, to, result)
+    }
     return next(e)
   })
 
@@ -891,6 +893,25 @@ export const register: Register = (on, options) => {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e): Promise<RenderElement> => {
+    const save: Save = async (field, value) => {
+      switch (field) {
+        case 'selectMode': return $.config.set({ key: 'next-steps-plus.selectMode', value })
+        case 'eightPicks': return $.config.set({ key: 'next-steps-plus.eightPicks', value })
+        case 'maxSuggestions': return $.config.set({ key: 'next-steps-plus.maxSuggestions', value })
+        case 'optionMode': return $.config.set({ key: 'next-steps-plus.optionMode', value })
+        case 'labelChars': return $.config.set({ key: 'next-steps-plus.labelChars', value })
+        case 'promptChars': return $.config.set({ key: 'next-steps-plus.promptChars', value })
+        case 'display': return $.config.set({ key: 'next-steps-plus.display', value })
+        case 'promptStyle': return $.config.set({ key: 'next-steps-plus.promptStyle', value })
+        case 'combineHeader': return $.config.set({ key: 'next-steps-plus.combineHeader', value })
+        case 'extraInstructions': return $.config.set({ key: 'next-steps-plus.extraInstructions', value })
+        case 'ghostText': return $.config.set({ key: 'next-steps-plus.ghostText', value })
+        case 'markRecommended': return $.config.set({ key: 'next-steps-plus.markRecommended', value })
+        case 'suggestSkills': return $.config.set({ key: 'next-steps-plus.suggestSkills', value })
+        case 'minAnswerChars': return $.config.set({ key: 'next-steps-plus.minAnswerChars', value })
+        default: return undefined
+      }
+    }
     const table = $.ui.resolve(e)
     const { Box, Text, Button } = table
     // Mobile lists no usable text box (its table may still name one), so
@@ -939,7 +960,7 @@ export const register: Register = (on, options) => {
               key={one.field}
               plain
               autoFocus={one.field === current.field ? true : undefined}
-              onPress={() => void change($, one, Input !== undefined)}
+              onPress={() => void change($, save, one, Input !== undefined)}
             >
               {`${one.field === current.field ? '▸ ' : '  '}${one.name.padEnd(nameWidth)}`}
               {one.field === inBox ? (
@@ -987,7 +1008,7 @@ export const register: Register = (on, options) => {
                   plain
                   hotkey={String(index + 1)}
                   label={`${String(value)}${value === row.value ? ' ✓' : ''}`}
-                  onPress={() => void pick($, current, value)}
+                  onPress={() => void pick($, save, current, value)}
                 />
               ))}
             </Box>
@@ -1025,7 +1046,7 @@ export const register: Register = (on, options) => {
                         ? `a whole number, ${(RANGES[current.field] ?? [0, 0]).join('-')}`
                         : 'text, or empty for none'
                     }
-                    onSubmit={value => void submit($, current, value)}
+                    onSubmit={value => void submit($, save, current, value)}
                   />
                   </Box>
                 </Box>
@@ -1043,7 +1064,7 @@ export const register: Register = (on, options) => {
                         key={key}
                         label={label}
                         dimColor={next === undefined ? true : undefined}
-                        onPress={() => void (next === undefined ? undefined : pick($, current, next))}
+                        onPress={() => void (next === undefined ? undefined : pick($, save, current, next))}
                       />
                     )
                   })}
