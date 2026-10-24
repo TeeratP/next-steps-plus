@@ -2,6 +2,8 @@
 
 After each answer, Claude Code suggests what you might ask next, shown above the prompt box. Tick the ones you want with the number keys, then press Tab or `9`: they go into the prompt box (one as it is, several as a numbered list) for you to edit and send. The plugin never sends a prompt on its own.
 
+https://github.com/user-attachments/assets/e85061d4-6110-4480-b0a1-1e4bd418e54d
+
 ```
 next: type numbers to pick, Tab or 9 to use them, 0 to dismiss
   1: [ ] run the tests you just wrote
