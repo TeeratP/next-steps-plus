@@ -1,5 +1,12 @@
 # Changelog
 
+### v1.0.0
+
+next-steps-plus 1.0: pick many, Tab once. No behaviour changes from v0.2.3; this marks the plugin as finished and ready for everyday use.
+
+- README: leads with the tagline, a 25-second teaser video and the install line, then a table of what NS+ adds to next-steps, five highlights and "Good to know". The settings pane walkthrough and the settings table are collapsed.
+- `video/`: the Remotion project that renders the 25 s teaser and the 47 s intro, with music generated to match the cuts.
+
 ### v0.2.3
 
 - README: next-steps-plus works in the Claude Code terminal (CLI) only; neither the suggestion list nor `/next-steps-plus` works in the desktop app. The per-surface table and the desktop install steps are gone.
