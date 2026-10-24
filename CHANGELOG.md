@@ -1,6 +1,6 @@
 # Changelog
 
-### Unreleased
+### v0.2.3
 
 - README: next-steps-plus works in the Claude Code terminal (CLI) only; neither the suggestion list nor `/next-steps-plus` works in the desktop app. The per-surface table and the desktop install steps are gone.
 
