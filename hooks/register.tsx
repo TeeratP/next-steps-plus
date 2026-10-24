@@ -701,8 +701,8 @@ export const register: Register = (on, options) => {
     const carries = await renamedToCarry($).catch(error => ($.ui.log(`could not carry renamed settings: ${String(error)}`), []))
     for (const { to, value } of carries) {
       let result
-      if (to === 'optionMode') result = await $.config.set({ key: 'next-steps-plus.optionMode', value })
-      if (to === 'display') result = await $.config.set({ key: 'next-steps-plus.display', value })
+      if (to === 'optionMode') result = await $.config.set({ key: 'next-steps-plus.optionMode', value: value })
+      if (to === 'display') result = await $.config.set({ key: 'next-steps-plus.display', value: value })
       const problem = saveProblem(to, result)
       if (problem !== undefined) $.ui.toast(problem)
     }
@@ -857,8 +857,8 @@ export const register: Register = (on, options) => {
     const carries = await renamedToCarry($).catch(error => ($.ui.log(`could not carry renamed settings: ${String(error)}`), []))
     for (const { to, value } of carries) {
       let result
-      if (to === 'optionMode') result = await $.config.set({ key: 'next-steps-plus.optionMode', value })
-      if (to === 'display') result = await $.config.set({ key: 'next-steps-plus.display', value })
+      if (to === 'optionMode') result = await $.config.set({ key: 'next-steps-plus.optionMode', value: value })
+      if (to === 'display') result = await $.config.set({ key: 'next-steps-plus.display', value: value })
       const problem = saveProblem(to, result)
       if (problem !== undefined) $.ui.toast(problem)
     }
@@ -898,20 +898,20 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e): Promise<RenderElement> => {
     const save: Save = async (field, value) => {
       switch (field) {
-        case 'selectMode': return $.config.set({ key: 'next-steps-plus.selectMode', value })
-        case 'eightPicks': return $.config.set({ key: 'next-steps-plus.eightPicks', value })
-        case 'maxSuggestions': return $.config.set({ key: 'next-steps-plus.maxSuggestions', value })
-        case 'optionMode': return $.config.set({ key: 'next-steps-plus.optionMode', value })
-        case 'labelChars': return $.config.set({ key: 'next-steps-plus.labelChars', value })
-        case 'promptChars': return $.config.set({ key: 'next-steps-plus.promptChars', value })
-        case 'display': return $.config.set({ key: 'next-steps-plus.display', value })
-        case 'promptStyle': return $.config.set({ key: 'next-steps-plus.promptStyle', value })
-        case 'combineHeader': return $.config.set({ key: 'next-steps-plus.combineHeader', value })
-        case 'extraInstructions': return $.config.set({ key: 'next-steps-plus.extraInstructions', value })
-        case 'ghostText': return $.config.set({ key: 'next-steps-plus.ghostText', value })
-        case 'markRecommended': return $.config.set({ key: 'next-steps-plus.markRecommended', value })
-        case 'suggestSkills': return $.config.set({ key: 'next-steps-plus.suggestSkills', value })
-        case 'minAnswerChars': return $.config.set({ key: 'next-steps-plus.minAnswerChars', value })
+        case 'selectMode': return $.config.set({ key: 'next-steps-plus.selectMode', value: value })
+        case 'eightPicks': return $.config.set({ key: 'next-steps-plus.eightPicks', value: value })
+        case 'maxSuggestions': return $.config.set({ key: 'next-steps-plus.maxSuggestions', value: value })
+        case 'optionMode': return $.config.set({ key: 'next-steps-plus.optionMode', value: value })
+        case 'labelChars': return $.config.set({ key: 'next-steps-plus.labelChars', value: value })
+        case 'promptChars': return $.config.set({ key: 'next-steps-plus.promptChars', value: value })
+        case 'display': return $.config.set({ key: 'next-steps-plus.display', value: value })
+        case 'promptStyle': return $.config.set({ key: 'next-steps-plus.promptStyle', value: value })
+        case 'combineHeader': return $.config.set({ key: 'next-steps-plus.combineHeader', value: value })
+        case 'extraInstructions': return $.config.set({ key: 'next-steps-plus.extraInstructions', value: value })
+        case 'ghostText': return $.config.set({ key: 'next-steps-plus.ghostText', value: value })
+        case 'markRecommended': return $.config.set({ key: 'next-steps-plus.markRecommended', value: value })
+        case 'suggestSkills': return $.config.set({ key: 'next-steps-plus.suggestSkills', value: value })
+        case 'minAnswerChars': return $.config.set({ key: 'next-steps-plus.minAnswerChars', value: value })
         default: return undefined
       }
     }
