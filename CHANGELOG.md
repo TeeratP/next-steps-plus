@@ -1,5 +1,10 @@
 # Changelog
 
+### v1.0.4
+
+- A privacy policy, [PRIVACY.md](PRIVACY.md): the plugin stores nothing outside Claude Code, sends nothing to any other service and collects no telemetry. The README links it.
+- `plugin.json` names the privacy policy, the issue tracker for support, and the README as documentation, for the plugin directory's listing.
+
 ### v1.0.3
 
 - Each settings save is now made directly in the hook that does it, on that hook's own `$`, with the key written out. This is the form the plugin directory reads, so the plugin passes its validation. Saving works as before: in the settings pane, and when an update carries a renamed setting to its new name.

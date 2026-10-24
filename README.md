@@ -38,6 +38,7 @@ Want the original behaviour? Set `selectMode` to `single` and `maxSuggestions` t
 
 - **Where it works:** the **Claude Code terminal (the CLI)** only. It doesn't work in the desktop app, VS Code or on mobile.
 - **What it costs:** each list is one short extra request, a quick question to a fork of your session that reuses its prompt cache, so about one short reply. It's asked only after the answer is done, and only after answers of at least 80 characters (`minAnswerChars`).
+- **Private:** no server, telemetry or data of its own; see the [privacy policy](PRIVACY.md).
 - **Safe:** suggestion text is cleaned of terminal escape codes and invisible characters before it's shown or written, and nothing is ever sent for you.
 - **Fits the screen:** suggestions that don't fit above the prompt box are left off, with a count.
 - **Your settings survive updates,** including settings renamed in a later version.

@@ -1,12 +1,15 @@
 {
   "name": "next-steps-plus",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Pick many. Tab once. Claude Code suggests your next prompts: tick several, press Tab, and get one numbered prompt. Built on next-steps.",
   "author": {
     "name": "Teerat Pipitcharulerd"
   },
   "homepage": "https://github.com/TeeratP/next-steps-plus",
   "repository": "https://github.com/TeeratP/next-steps-plus",
+  "privacyPolicyUrl": "https://github.com/TeeratP/next-steps-plus/blob/main/PRIVACY.md",
+  "supportUrl": "https://github.com/TeeratP/next-steps-plus/issues",
+  "documentationUrl": "https://github.com/TeeratP/next-steps-plus#readme",
   "license": "MIT",
   "keywords": [
     "suggestions",
