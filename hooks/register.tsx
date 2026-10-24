@@ -61,7 +61,7 @@ type Settings = {
   extraInstructions: string
 }
 
-// Digits 1-7 pick, 8 picks all but commands, 9 fills, 0 dismisses: bare
+// Digits 1-7 pick, 8 selects (eightPicks), 9 fills, 0 dismisses: bare
 // digits are the only keys an empty composer hands to a band Button.
 const SUGGESTIONS_LIMIT = 7
 const EXTRA_INSTRUCTIONS_MAX = 500

@@ -20,7 +20,7 @@
     "selectMode": {
       "type": "string",
       "title": "Selection mode (default: multi)",
-      "description": "single: a number key puts that one suggestion in the prompt box (as the original next-steps). multi: number keys toggle suggestions, 8 picks all but commands, and 9 puts all picked ones in the prompt box.",
+      "description": "single: a number key puts that one suggestion in the prompt box (as the original next-steps). multi: number keys toggle suggestions, 8 selects the ones marked (Recommended) (see Key 8 picks), and Tab or 9 puts all picked ones in the prompt box.",
       "options": [
         "multi",
         "single"
