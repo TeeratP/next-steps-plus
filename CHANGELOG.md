@@ -1,5 +1,12 @@
 # Changelog
 
+### v1.0.2
+
+- Settings are saved with each setting named as fixed text (`next-steps-plus.<field>`), so the plugin directory's scan can see the plugin only ever changes its own settings. Saving works as before, in the settings pane and when an update carries a renamed setting.
+- README: "Good to know" says what the plugin changes (only its own settings) and what it hooks.
+- `plugin.json` drops the `types` field, which Claude Code ignored.
+- The video project copies the plugin icon in when it builds instead of keeping a second copy.
+
 ### v1.0.1
 
 - The plugin and marketplace descriptions now read "Pick many. Tab once. Claude Code suggests your next prompts: tick several, press Tab, and get one numbered prompt." The old one said the defaults were the same as next-steps, which stopped being true in v0.1.21.
