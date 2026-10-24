@@ -1,5 +1,9 @@
 # Changelog
 
+### v1.0.3
+
+- Each settings save is now made directly in the hook that does it, on that hook's own `$`, with the key written out. This is the form the plugin directory reads, so the plugin passes its validation. Saving works as before: in the settings pane, and when an update carries a renamed setting to its new name.
+
 ### v1.0.2
 
 - Settings are saved with each setting named as fixed text (`next-steps-plus.<field>`), so the plugin directory's scan can see the plugin only ever changes its own settings. Saving works as before, in the settings pane and when an update carries a renamed setting.
