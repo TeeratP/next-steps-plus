@@ -1,6 +1,6 @@
 {
   "name": "next-steps-plus",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Pick many. Tab once. Claude Code suggests your next prompts: tick several, press Tab, and get one numbered prompt. Built on next-steps.",
   "author": {
     "name": "Teerat Pipitcharulerd"

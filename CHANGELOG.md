@@ -1,5 +1,10 @@
 # Changelog
 
+### v1.0.1
+
+- The plugin and marketplace descriptions now read "Pick many. Tab once. Claude Code suggests your next prompts: tick several, press Tab, and get one numbered prompt." The old one said the defaults were the same as next-steps, which stopped being true in v0.1.21.
+- The Selection mode setting's description says `8` selects the suggestions marked (Recommended) by default (see Key 8 picks), and mentions Tab. It still described the old default, "8 picks all but commands".
+
 ### v1.0.0
 
 next-steps-plus 1.0: pick many, Tab once. No behaviour changes from v0.2.3; this marks the plugin as finished and ready for everyday use.
