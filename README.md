@@ -41,6 +41,8 @@ Want the original behaviour? Set `selectMode` to `single` and `maxSuggestions` t
 - **Safe:** suggestion text is cleaned of terminal escape codes and invisible characters before it's shown or written, and nothing is ever sent for you.
 - **Fits the screen:** suggestions that don't fit above the prompt box are left off, with a count.
 - **Your settings survive updates,** including settings renamed in a later version.
+- **What it changes:** only its own settings (the `next-steps-plus.*` rows in `/config`), and only when you change one in the `/next-steps-plus` pane, or when an update carries a setting you saved under an older name to its new name. It changes no other configuration and no environment variables.
+- **What it hooks:** the end of each answer (to ask for suggestions), the space above the prompt box (to draw them), the start of a session or turn (to register `/next-steps-plus` and carry renamed settings), and its own settings pane: the `/next-steps-plus` command, plus the pane's focus, close and drawing. The focus hook only follows the ring between the pane's own rows; it never acts on another plugin's focus.
 
 ## Install
 

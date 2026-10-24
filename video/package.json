@@ -2,10 +2,11 @@
   "name": "ns-plus-video",
   "private": true,
   "scripts": {
-    "dev": "remotion studio",
+    "icon": "cp ../.claude-plugin/icon.png public/icon.png",
+    "dev": "npm run icon && remotion studio",
     "music": "python3 scripts/music.py intro public/music.wav && python3 scripts/music.py teaser public/music-25.wav",
-    "render:intro": "remotion render src/index.ts Intro out/ns-plus-intro-47s.mp4 --codec h264 --crf 18 && sh scripts/mux.sh intro-47s music",
-    "render:teaser": "remotion render src/index.ts Teaser out/ns-plus-teaser-25s-v2.mp4 --codec h264 --crf 18 && sh scripts/mux.sh teaser-25s-v2 music-25",
+    "render:intro": "npm run icon && remotion render src/index.ts Intro out/ns-plus-intro-47s.mp4 --codec h264 --crf 18 && sh scripts/mux.sh intro-47s music",
+    "render:teaser": "npm run icon && remotion render src/index.ts Teaser out/ns-plus-teaser-25s-v2.mp4 --codec h264 --crf 18 && sh scripts/mux.sh teaser-25s-v2 music-25",
     "render": "npm run music && npm run render:teaser && npm run render:intro"
   },
   "dependencies": {

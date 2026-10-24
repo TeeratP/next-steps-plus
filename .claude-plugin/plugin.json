@@ -15,7 +15,6 @@
     "function-hooks",
     "ui"
   ],
-  "types": "./types/index.d.ts",
   "userConfig": {
     "selectMode": {
       "type": "string",

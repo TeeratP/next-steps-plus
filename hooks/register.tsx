@@ -500,8 +500,31 @@ function shown(value: ConfigRow['value']): string {
   return Array.isArray(value) ? value.join(', ') : String(value)
 }
 
-async function setValue($: EngineInterface, key: string, value: ConfigRow['value']): Promise<void> {
-  const result = await $.config.set({ key, value })
+// Each write names its setting as fixed text, so a reader of the source (the
+// plugin directory's scan) can see the plugin only ever sets its own settings.
+function writeSetting($: EngineInterface, field: string, value: ConfigRow['value']) {
+  switch (field) {
+    case 'selectMode': return $.config.set({ key: 'next-steps-plus.selectMode', value })
+    case 'eightPicks': return $.config.set({ key: 'next-steps-plus.eightPicks', value })
+    case 'maxSuggestions': return $.config.set({ key: 'next-steps-plus.maxSuggestions', value })
+    case 'optionMode': return $.config.set({ key: 'next-steps-plus.optionMode', value })
+    case 'labelChars': return $.config.set({ key: 'next-steps-plus.labelChars', value })
+    case 'promptChars': return $.config.set({ key: 'next-steps-plus.promptChars', value })
+    case 'display': return $.config.set({ key: 'next-steps-plus.display', value })
+    case 'promptStyle': return $.config.set({ key: 'next-steps-plus.promptStyle', value })
+    case 'combineHeader': return $.config.set({ key: 'next-steps-plus.combineHeader', value })
+    case 'extraInstructions': return $.config.set({ key: 'next-steps-plus.extraInstructions', value })
+    case 'ghostText': return $.config.set({ key: 'next-steps-plus.ghostText', value })
+    case 'markRecommended': return $.config.set({ key: 'next-steps-plus.markRecommended', value })
+    case 'suggestSkills': return $.config.set({ key: 'next-steps-plus.suggestSkills', value })
+    case 'minAnswerChars': return $.config.set({ key: 'next-steps-plus.minAnswerChars', value })
+    default: return undefined
+  }
+}
+
+async function setValue($: EngineInterface, field: string, value: ConfigRow['value']): Promise<void> {
+  const result = await writeSetting($, field, value)
+  if (result === undefined) return void $.ui.log(`next-steps-plus: no such setting: ${field}`)
   if ('deny' in result && typeof result.deny === 'string') $.ui.toast(`not changed: ${result.deny}`)
 }
 
@@ -517,7 +540,7 @@ async function pick($: EngineInterface, setting: Setting, value: ConfigRow['valu
   await update($, selected, () => setting.field)
   await update($, editing, () => '')
   if (setting.row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
-  await setValue($, setting.row.key, value)
+  await setValue($, setting.field, value)
   await refocus($, setting.field)
 }
 
@@ -646,7 +669,7 @@ async function carryRenamed($: EngineInterface): Promise<void> {
     const row = rows.find(r => r.key.startsWith('next-steps-plus') && fieldOf(r) === to)
     if (value === undefined || row === undefined) continue
     done.add(to)
-    await setValue($, row.key, value)
+    await setValue($, to, value)
   }
 }
 
