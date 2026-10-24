@@ -1037,8 +1037,9 @@ export const register: Register = (on, options) => {
     // Bottom: the band as these settings draw it, cut to the section.
     const now = settings(Object.fromEntries(list.map(one => [one.field, one.row.value])))
     const { lines, ghost } = previewLines(now, keys)
-    // The list itself draws on the terminal and the desktop app only.
-    const listShowsHere = e.surface === 'terminal' || e.surface === 'desktop'
+    // The list itself is only seen in the terminal: Claude Code does not draw
+    // it in VS Code or on mobile, and it did not show in the desktop app.
+    const listShowsHere = e.surface === 'terminal'
     // The line, the title and a blank row take three rows, and the prompt-box
     // picture under the band five (a gap, its frame of three, its caption).
     const room = Math.max(1, sectionRows - 3 - GHOST_ROWS)
@@ -1053,7 +1054,7 @@ export const register: Register = (on, options) => {
             <Text dimColor>
               {listShowsHere
               ? `(sample suggestions with your settings${now.optionMode === 'up-to' ? '; up-to often shows fewer' : ''})`
-              : '(the suggestion list itself shows in the terminal and the desktop app, not here)'}
+              : '(the suggestion list itself shows in the terminal, not here)'}
             </Text>
           </Text>
           <Text> </Text>

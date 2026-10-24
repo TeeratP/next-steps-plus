@@ -37,10 +37,10 @@ It's a fork of the original [next-steps](https://github.com/anthropics/claude-pl
 
 | | Terminal | Desktop app | VS Code | Mobile |
 | --- | --- | --- | --- | --- |
-| Suggestion list above the prompt box | ✓ | ✓ | – | – |
-| `/next-steps-plus` settings pane | ✓ | ✓ | ✓ | ✓ (numbers with − and +; text in `/config`) |
+| Suggestion list above the prompt box | ✓ | – (not shown) | – | – |
+| `/next-steps-plus` settings pane | ✓ | not tested yet | not tested yet | not tested yet (numbers with − and +; text in `/config`) |
 
-Claude Code draws the space above the prompt box only in the terminal and the desktop app, so in VS Code and on mobile there is no suggestion list; the settings pane works everywhere. Keyboard shortcuts (number keys, Tab, `8`, `9`, `0`) are the terminal's; the desktop app is used by clicking.
+**The suggestion list works in the terminal (the Claude Code CLI).** It doesn't show in the desktop app, and Claude Code doesn't draw that space in VS Code or on mobile. The settings pane is built for every surface, but so far it's only been tested in the terminal.
 
 ## What it costs
 

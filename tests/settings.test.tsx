@@ -361,8 +361,8 @@ test('mobile has no text box: − and + step a number, text points to /config', 
   expect(await ui.find({ type: 'Button', text: /editing below/ })).toBeUndefined()
   expect((await ui.find({ type: 'Text', text: /\/config on a computer/ }))?.text).toBe('Change this in /config on a computer')
   expect((await ui.find({ type: 'Text', text: /^Click or tap a setting/ }))?.text).toBeDefined()
-  expect((await ui.find({ type: 'Text', text: /shows in the terminal and the desktop app/ }))?.text).toBe(
-    'Preview (the suggestion list itself shows in the terminal and the desktop app, not here)',
+  expect((await ui.find({ type: 'Text', text: /itself shows in the terminal/ }))?.text).toBe(
+    'Preview (the suggestion list itself shows in the terminal, not here)',
   )
   await ui.unmount()
 })
