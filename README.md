@@ -1,47 +1,46 @@
-# next-steps-plus
+<p align="center"><img src=".claude-plugin/icon.png" width="112" alt="NS+ logo"></p>
 
-After each answer, Claude Code suggests what you might ask next, shown above the prompt box. Tick the ones you want with the number keys, then press Tab or `9`: they go into the prompt box (one as it is, several as a numbered list) for you to edit and send. The plugin never sends a prompt on its own.
+<h1 align="center">next-steps-plus</h1>
+
+<p align="center"><b>Pick many. Tab once.</b><br>
+After each answer, Claude Code suggests your next prompts. Tick several, press Tab, and they land in your prompt box as one numbered list, ready to edit and send.</p>
 
 https://github.com/user-attachments/assets/e85061d4-6110-4480-b0a1-1e4bd418e54d
 
 ```
-next: type numbers to pick, Tab or 9 to use them, 0 to dismiss
-  1: [ ] run the tests you just wrote
-  2: [1] commit the change (Recommended)
-  3: [ ] do the same for the settings page
-  4: [ ] /code-review high (runs alone)
-  5: [ ] update the README
-  8: select recommended   Tab/9: use selected (1)   0: dismiss
+/plugin install next-steps-plus --marketplace TeeratP/next-steps-plus
 ```
 
-When the right move is to wait (CI, a build, a deploy, someone's reply) and there's nothing useful to type meanwhile, it says so instead, with nothing to pick:
+<sub>For the Claude Code terminal (the CLI). Built on <a href="https://github.com/anthropics/claude-plugins-community/tree/main/next-steps">next-steps</a> by Thariq Shihipar. The plugin never sends a prompt on its own.</sub>
 
-```
-next: nothing to do now, wait for the CI run to finish   0: dismiss
-```
+## What it adds to next-steps
 
-It's a fork of the original [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) plugin, which offers 3 suggestions and puts one in the prompt box with a single press. To work exactly like that, set `selectMode` to `single` and `maxSuggestions` to `3`. Everything else is in the [settings](#settings): longer suggestions, seeing each full prompt before you pick (or using it as the label), and more.
+| | next-steps | **next-steps-plus** |
+| --- | --- | --- |
+| Suggestions | 3, always | up to 7, only the ones that matter |
+| Pick | one | **several**, written in the order you tick them |
+| Tab | takes the top suggestion | **takes your picks** (the ghost text follows them) |
+| (Recommended) | – | marks the steps worth doing now; `8` selects them all |
+| Nothing to do? | – | says so ("wait for the CI run to finish") |
+| Settings | a few, in `/config` | more of them, plus a pane with a live preview: `/next-steps-plus` |
+
+Want the original behaviour? Set `selectMode` to `single` and `maxSuggestions` to `3`.
 
 ## Highlights
 
-- **Pick several, send one prompt.** Tick suggestions with the number keys; they're written as one numbered draft in the order you ticked them.
-- **Tab takes your picks.** The faint ghost text in the prompt box follows what you tick, so Claude Code's own Tab accepts exactly your selection: the recommended step with nothing ticked, that one with one ticked, the numbered draft with several.
-- **(Recommended) marks the steps worth doing now** (one or several), the way Claude's own multiple-choice questions do, and `8` selects them all in one press.
-- **Only what matters.** You get the steps that clearly matter, from none to 5, not a padded list. When the move is to wait for CI, a build or someone's reply, it says so instead of inventing work.
-- **Knows your skills and slash commands.** A suggestion can be `/skill arguments` for the skills and commands you actually have; one naming a command you don't have is dropped. A command is never mixed into a list with other steps, since anything after it would become its arguments.
-- **See what you'll get.** Show a short label, the label with its full prompt under it, or the full prompt itself as the label, so what you pick is exactly what lands in the box.
-- **A settings pane with a live preview.** `/next-steps-plus` lists every setting with its full description, checks numbers as you type them, and shows a preview of the suggestion list (and the ghost text) as your settings draw it.
-- **Cheap and out of the way.** Suggestions come from one quick question to a fork of your session, which reuses its prompt cache (about the cost of one short reply), asked after the answer is done so nothing waits on it. Suggestions that don't fit the space above the prompt box are left off, with a count.
-- **Safe.** Suggestion text is cleaned of terminal escape codes and invisible characters before it's shown or written, and the plugin never sends a prompt on its own.
-- **Your settings survive updates,** including settings that were renamed in a later version.
+- **Pick several, send one prompt.** Tick suggestions with the number keys, press Tab or `9`, and they become one numbered draft.
+- **(Recommended) marks what's worth doing now,** one step or several, and `8` selects them all in one press.
+- **Only what matters.** From none to 5 steps, never a padded list, and when the move is to wait for CI or a build, it says so instead of inventing work.
+- **Knows your skills.** A suggestion can be one of your own slash commands or skills (`/code-review high`); ones you don't have are dropped.
+- **Tune everything, live.** `/next-steps-plus` explains every setting and previews your suggestion list as you change it: longer labels, the full prompt as the label, prompt style, and more.
 
-## Where it works
+## Good to know
 
-next-steps-plus works in the **Claude Code terminal (the CLI)** only. It doesn't work in the desktop app, VS Code or on mobile.
-
-## What it costs
-
-Each suggestion list is one short extra request to the model: a quick question to a fork of your session that reuses its prompt cache, so it costs about one short reply, not a full new conversation. It's asked only after answers of at least 80 characters (`minAnswerChars`), and never while Claude is still working.
+- **Where it works:** the **Claude Code terminal (the CLI)** only. It doesn't work in the desktop app, VS Code or on mobile.
+- **What it costs:** each list is one short extra request, a quick question to a fork of your session that reuses its prompt cache, so about one short reply. It's asked only after the answer is done, and only after answers of at least 80 characters (`minAnswerChars`).
+- **Safe:** suggestion text is cleaned of terminal escape codes and invisible characters before it's shown or written, and nothing is ever sent for you.
+- **Fits the screen:** suggestions that don't fit above the prompt box are left off, with a count.
+- **Your settings survive updates,** including settings renamed in a later version.
 
 ## Install
 
@@ -88,9 +87,18 @@ Do these tasks:
 - **Tab** works like `9`: the faint ghost text in the empty prompt box always follows your ticks (the recommended suggestion with nothing ticked, that one with one ticked, the numbered draft with several), so Claude Code's own Tab takes exactly that. It needs the plugin's `ghostText` setting on; with it off, the list says only `9`.
 - A slash command (`/code-review high`) can only be used on its own, because anything after it would be read as its arguments. Ticking it unticks the others, and ticking anything else unticks it.
 
+When the right move is to wait (CI, a build, a deploy, someone's reply) and there's nothing useful to type meanwhile, it says so instead, with nothing to pick:
+
+```
+next: nothing to do now, wait for the CI run to finish   0: dismiss
+```
+
 ## Settings
 
 Change them on the install screen, in `/config`, or in the plugin's own settings pane: type `/next-steps-plus`. A change takes effect right away, and all three show and change the same values.
+
+<details>
+<summary><b>The settings pane, key by key</b></summary>
 
 The settings pane has three parts: every setting with its value on top; the selected setting in the middle (its description, current value, default, and where to change it); and at the bottom a preview of the suggestion list as your settings draw it, using sample suggestions.
 
@@ -145,6 +153,11 @@ next: type numbers to pick, Tab or 9 to use them, 0 to dismiss
 
 The pane opens beside the conversation in a wide terminal, or above the prompt otherwise. Long values are shortened with … in the list; the full value shows below as Now.
 
+</details>
+
+<details>
+<summary><b>All settings and their defaults</b></summary>
+
 | Setting | Default | What it does |
 | --- | --- | --- |
 | `selectMode` | `multi` (original: `single`) | `multi`: pick several, as [above](#picking-several-suggestions). `single`: a number key puts that one suggestion in the prompt box |
@@ -164,9 +177,11 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 
 \* Same as the original next-steps. Settings marked "original:" exist in the original with a different default; the rest are new in this plugin.
 
+</details>
+
 ## Credits
 
-A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds the settings and multi-select.
+A fork of [next-steps](https://github.com/anthropics/claude-plugins-community/tree/main/next-steps) by Thariq Shihipar (MIT), from [anthropics/claude-plugins-community](https://github.com/anthropics/claude-plugins-community) at commit `f60f045`. The way suggestions are made is the original's; this plugin adds multi-select, Tab for your picks, (Recommended), knowing when to wait, more settings and the settings pane.
 
 ## Changelog
 
