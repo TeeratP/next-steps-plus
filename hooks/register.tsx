@@ -507,9 +507,11 @@ function shown(value: ConfigRow['value']): string {
 // and hands the pane's helpers a `Save` that makes them.
 type Save = (field: string, value: ConfigRow['value']) => Promise<{ deny?: string } | object | undefined>
 
-function reportSave($: EngineInterface, field: string, result: { deny?: string } | object | undefined): void {
-  if (result === undefined) return void $.ui.log(`next-steps-plus: no such setting: ${field}`)
-  if ('deny' in result && typeof result.deny === 'string') $.ui.toast(`not changed: ${result.deny}`)
+// What to tell the person after a save: why it was refused, or nothing.
+function saveProblem(field: string, result: { deny?: string } | object | undefined): string | undefined {
+  if (result === undefined) return `no such setting: ${field}`
+  if ('deny' in result && typeof result.deny === 'string') return `not changed: ${result.deny}`
+  return undefined
 }
 
 // A change reloads this module (Claude Code reloads a plugin whose settings
@@ -524,7 +526,8 @@ async function pick($: EngineInterface, save: Save, setting: Setting, value: Con
   await update($, selected, () => setting.field)
   await update($, editing, () => '')
   if (setting.row.isLocked) return void $.ui.toast(`${setting.name} is set by your organization`)
-  reportSave($, setting.field, await save(setting.field, value))
+  const problem = saveProblem(setting.field, await save(setting.field, value))
+  if (problem !== undefined) $.ui.toast(problem)
   await refocus($, setting.field)
 }
 
@@ -697,11 +700,11 @@ export const register: Register = (on, options) => {
     await declareCommand($).catch(error => $.ui.log(`could not declare /${COMMAND}: ${String(error)}`))
     const carries = await renamedToCarry($).catch(error => ($.ui.log(`could not carry renamed settings: ${String(error)}`), []))
     for (const { to, value } of carries) {
-      const result =
-        to === 'optionMode' ? await $.config.set({ key: 'next-steps-plus.optionMode', value })
-        : to === 'display' ? await $.config.set({ key: 'next-steps-plus.display', value })
-        : undefined
-      reportSave($, to, result)
+      let result
+      if (to === 'optionMode') result = await $.config.set({ key: 'next-steps-plus.optionMode', value })
+      if (to === 'display') result = await $.config.set({ key: 'next-steps-plus.display', value })
+      const problem = saveProblem(to, result)
+      if (problem !== undefined) $.ui.toast(problem)
     }
     return next(e)
   })
@@ -853,11 +856,11 @@ export const register: Register = (on, options) => {
     await declareCommand($).catch(error => $.ui.log(`could not declare /${COMMAND}: ${String(error)}`))
     const carries = await renamedToCarry($).catch(error => ($.ui.log(`could not carry renamed settings: ${String(error)}`), []))
     for (const { to, value } of carries) {
-      const result =
-        to === 'optionMode' ? await $.config.set({ key: 'next-steps-plus.optionMode', value })
-        : to === 'display' ? await $.config.set({ key: 'next-steps-plus.display', value })
-        : undefined
-      reportSave($, to, result)
+      let result
+      if (to === 'optionMode') result = await $.config.set({ key: 'next-steps-plus.optionMode', value })
+      if (to === 'display') result = await $.config.set({ key: 'next-steps-plus.display', value })
+      const problem = saveProblem(to, result)
+      if (problem !== undefined) $.ui.toast(problem)
     }
     return next(e)
   })
