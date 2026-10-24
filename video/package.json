@@ -1,0 +1,24 @@
+{
+  "name": "ns-plus-video",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio",
+    "music": "python3 scripts/music.py intro public/music.wav && python3 scripts/music.py teaser public/music-25.wav",
+    "render:intro": "remotion render src/index.ts Intro out/ns-plus-intro-47s.mp4 --codec h264 --crf 18 && sh scripts/mux.sh intro-47s music",
+    "render:teaser": "remotion render src/index.ts Teaser out/ns-plus-teaser-25s-v2.mp4 --codec h264 --crf 18 && sh scripts/mux.sh teaser-25s-v2 music-25",
+    "render": "npm run music && npm run render:teaser && npm run render:intro"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.300",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.300"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  },
+  "allowScripts": {
+    "esbuild@0.25.0": true
+  }
+}
