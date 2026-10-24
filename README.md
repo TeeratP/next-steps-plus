@@ -35,12 +35,7 @@ It's a fork of the original [next-steps](https://github.com/anthropics/claude-pl
 
 ## Where it works
 
-| | Terminal | Desktop app | VS Code | Mobile |
-| --- | --- | --- | --- | --- |
-| Suggestion list above the prompt box | ✓ | – (not shown) | – | – |
-| `/next-steps-plus` settings pane | ✓ | not tested yet | not tested yet | not tested yet (numbers with − and +; text in `/config`) |
-
-**The suggestion list works in the terminal (the Claude Code CLI).** It doesn't show in the desktop app, and Claude Code doesn't draw that space in VS Code or on mobile. The settings pane is built for every surface, but so far it's only been tested in the terminal.
+next-steps-plus works in the **Claude Code terminal (the CLI)** only. It doesn't work in the desktop app, VS Code or on mobile.
 
 ## What it costs
 
@@ -61,8 +56,6 @@ From a shell instead:
 ```
 claude plugin install next-steps-plus --marketplace TeeratP/next-steps-plus
 ```
-
-In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `TeeratP/next-steps-plus`, then Add plugin.
 
 To update later without restarting: run `claude plugin marketplace update next-steps-plus && claude plugin update next-steps-plus@next-steps-plus`, then `/reload-plugins`. Updates keep your settings, and a setting saved under an older name is carried over to its new name (it never replaces a value you already set).
 
