@@ -22,9 +22,9 @@ const REPLY = JSON.stringify([
 ])
 
 // Most tests are written against the original next-steps' behaviour: one
-// press picks one, 3 suggestions, 8 selects all, the old header. They say
-// so here, so a change of the plugin's defaults does not change them.
-const BASE = { selectMode: 'single', maxSuggestions: 3, eightPicks: 'all', combineHeader: 'Do these in order:' } as const
+// press picks one, 3 suggestions, the old header. They say so here, so a
+// change of the plugin's defaults does not change them.
+const BASE = { selectMode: 'single', maxSuggestions: 3, combineHeader: 'Do these in order:' } as const
 const BASELINE = { options: BASE } as const
 const MULTI = { options: { ...BASE, selectMode: 'multi' } } as const
 
@@ -59,14 +59,14 @@ async function offer($: Engine, on: On, reply = REPLY): Promise<string[]> {
   return filled
 }
 
-test('multi: picks combine in pick order; 9 fills them', MULTI, async ($, on) => {
+test('multi: picks combine in pick order; the use button fills them', MULTI, async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', text: /Run the tests/ }))?.text).toContain('[ ]')
   await ui.press({ key: 's1' })
   await ui.press({ key: 's0' })
   expect((await ui.find({ type: 'Button', text: /use selected/ }))?.text).toContain('(2)')
-  await ui.press({ key: 'use selected (2)' })
+  await ui.press({ key: 'use' })
   expect(filled).toEqual([
     'Do these in order:\n1. Commit the change with a short message.\n2. Run the unit tests in tests/ and fix any failure.',
   ])
@@ -78,7 +78,7 @@ test('multi: a slash command clears the other picks', MULTI, async ($, on) => {
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await ui.press({ key: 's0' })
   await ui.press({ key: 's2' })
-  await ui.press({ key: 'use selected (1)' })
+  await ui.press({ key: 'use' })
   expect(filled).toEqual(['/code-review high'])
   await ui.unmount()
 })
@@ -187,13 +187,13 @@ test('single: a press fills that prompt at once', BASELINE, async ($, on) => {
   await ui.unmount()
 })
 
-test('multi: 8 picks every prose suggestion, never a command', MULTI, async ($, on) => {
+test('multi: 9 picks every prose suggestion, never a command', MULTI, async ($, on) => {
   const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await ui.press({ key: 's2' })
   await ui.press({ key: 'all' })
   expect((await ui.find({ type: 'Button', text: /use selected/ }))?.text).toContain('(2)')
-  await ui.press({ key: 'use selected (2)' })
+  await ui.press({ key: 'use' })
   expect(filled).toEqual([
     'Do these in order:\n1. Run the unit tests in tests/ and fix any failure.\n2. Commit the change with a short message.',
   ])
@@ -209,7 +209,7 @@ test('multi: pressing all again clears the picks', MULTI, async ($, on) => {
   await ui.unmount()
 })
 
-test('8 is always the key for all but commands', { options: { ...BASE, selectMode: 'multi', maxSuggestions: 8 } }, async ($, on) => {
+test('9 is the key for all but commands, so 7 is the most suggestions', { options: { ...BASE, selectMode: 'multi', maxSuggestions: 8 } }, async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await ui.find({ type: 'Button', key: 'all' })).toBeDefined()
@@ -217,12 +217,12 @@ test('8 is always the key for all but commands', { options: { ...BASE, selectMod
   await ui.unmount()
 })
 
-test('eightPicks recommended: 8 picks the recommended suggestions', { options: { ...BASE, selectMode: 'multi', eightPicks: 'recommended' } }, async ($, on) => {
+test('8 picks the recommended suggestions', MULTI, async ($, on) => {
   const filled = await offer($, on, MARKED)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select recommended')
-  await ui.press({ key: 'all' })
-  await ui.press({ key: 'use selected (1)' })
+  expect((await ui.find({ type: 'Button', key: 'recommended' }))?.text).toBe('select recommended')
+  await ui.press({ key: 'recommended' })
+  await ui.press({ key: 'use' })
   expect(filled).toEqual(['Commit the change.'])
   await ui.unmount()
 })
@@ -238,29 +238,32 @@ test('Tab takes the picks: the ghost text follows what is picked', MULTI, async 
   await ui.press({ key: 's1' })
   await ui.press({ key: 's0' })
   expect(ghost).toBe('Run the unit tests in tests/ and fix any failure.')
-  expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: type numbers to pick, Tab or 9 to use them, 0 to dismiss')
+  expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: type numbers to pick, Tab to use them, 0 to dismiss')
   await ui.press({ key: 's0' })
-  expect((await ui.find({ type: 'Text', text: /^Tab\/$/ }))?.text).toBe('Tab/')
+  expect((await ui.find({ type: 'Button', key: 'use' }))?.text).toBe('Tab: use selected (1)')
   await ui.unmount()
 })
 
-test("the hint leaves Tab out when the plugin's ghost text is off", { options: { ...BASE, selectMode: 'multi', ghostText: false } }, async ($, on) => {
-  await offer($, on)
+test("with the plugin's ghost text off, Tab can't take the picks, so 9 uses them", { options: { ...BASE, selectMode: 'multi', ghostText: false } }, async ($, on) => {
+  const filled = await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: type numbers to pick, 9 to use them, 0 to dismiss')
+  expect(await ui.find({ type: 'Button', key: 'all' })).toBeUndefined()
   await ui.press({ key: 's0' })
-  expect(await ui.find({ type: 'Text', text: /^Tab\/$/ })).toBeUndefined()
+  expect((await ui.find({ type: 'Button', key: 'use' }))?.text).toBe('use selected (1)')
+  await ui.press({ key: 'use' })
+  expect(filled).toEqual(['Run the unit tests in tests/ and fix any failure.'])
   await ui.unmount()
 })
 
-test('8 reads "select all" when there is no command to leave out', { options: { ...BASE, selectMode: 'multi' } }, async ($, on) => {
+test('9 reads "select all" when there is no command to leave out', { options: { ...BASE, selectMode: 'multi' } }, async ($, on) => {
   await offer($, on, MARKED)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select all')
   await ui.unmount()
 })
 
-test('8 reads "select all except commands" when a command is listed', MULTI, async ($, on) => {
+test('9 reads "select all except commands" when a command is listed', MULTI, async ($, on) => {
   await offer($, on)
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select all except commands')
@@ -277,10 +280,11 @@ test('the defaults: multi, 5 suggestions, 8 selects recommended, "Do these tasks
     { label: 'Six', prompt: 'Do six.' },
   ]))
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
-  expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: type numbers to pick, Tab or 9 to use them, 0 to dismiss')
+  expect((await ui.find({ type: 'Text', text: /^next:/ }))?.text).toBe('next: type numbers to pick, Tab to use them, 0 to dismiss')
   expect(await ui.find({ type: 'Button', key: 's4' })).toBeDefined()
   expect(await ui.find({ type: 'Button', key: 's5' })).toBeUndefined()
-  expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select recommended')
+  expect((await ui.find({ type: 'Button', key: 'recommended' }))?.text).toBe('select recommended')
+  expect((await ui.find({ type: 'Button', key: 'all' }))?.text).toBe('select all')
   await ui.press({ key: 's0' })
   await ui.press({ key: 's2' })
   expect(ghost).toBe('Do these tasks:\n1. Do one.\n2. Do three.')
@@ -300,7 +304,7 @@ test('the model is told there can be more than one recommended step', BASELINE, 
   expect(asked).toContain('There can be more than one')
 })
 
-test('several recommended steps are all marked, and 8 selects them all', { options: { ...BASE, selectMode: 'multi', eightPicks: 'recommended' } }, async ($, on) => {
+test('several recommended steps are all marked, and 8 selects them all', MULTI, async ($, on) => {
   const filled = await offer($, on, JSON.stringify([
     { label: 'Run the tests', prompt: 'Run the tests.', recommended: true },
     { label: 'Update docs', prompt: 'Update the docs.' },
@@ -309,8 +313,8 @@ test('several recommended steps are all marked, and 8 selects them all', { optio
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('[ ] Run the tests (Recommended)')
   expect((await ui.find({ type: 'Button', key: 's2' }))?.text).toBe('[ ] Commit (Recommended)')
-  await ui.press({ key: 'all' })
-  await ui.press({ key: 'use selected (2)' })
+  await ui.press({ key: 'recommended' })
+  await ui.press({ key: 'use' })
   expect(filled).toEqual(['Do these in order:\n1. Run the tests.\n2. Commit.'])
   await ui.unmount()
 })

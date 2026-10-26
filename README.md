@@ -28,7 +28,7 @@ Want the original behaviour? Set `selectMode` to `single` and `maxSuggestions` t
 
 ## Highlights
 
-- **Pick several, send one prompt.** Tick suggestions with the number keys, press Tab or `9`, and they become one numbered draft.
+- **Pick several, send one prompt.** Tick suggestions with the number keys (or `9` for all of them), press Tab, and they become one numbered draft.
 - **(Recommended) marks what's worth doing now,** one step or several, and `8` selects them all in one press.
 - **Only what matters.** From none to 5 steps, never a padded list, and when the move is to wait for CI or a build, it says so instead of inventing work.
 - **Knows your skills.** A suggestion can be one of your own slash commands or skills (`/code-review high`); ones you don't have are dropped.
@@ -67,18 +67,18 @@ If you have the original next-steps installed, turn it off (`/plugin` → next-s
 
 ## Picking several suggestions
 
-This is the default (`selectMode: multi`). Each number key ticks or unticks a suggestion, and `9` (or Tab, see below) puts all the ticked ones in the prompt box together:
+This is the default (`selectMode: multi`). Each number key ticks or unticks a suggestion, `8` ticks the recommended ones, `9` ticks them all, and Tab puts the ticked ones in the prompt box together:
 
 ```
-next: type numbers to pick, Tab or 9 to use them, 0 to dismiss
+next: type numbers to pick, Tab to use them, 0 to dismiss
   1: [2] Run the tests and fix failures
   2: [ ] Update the README for the new option
-  3: [1] Commit the change
+  3: [1] Commit the change (Recommended)
   4: [ ] /code-review high (runs alone)
-  8: select all except commands   Tab/9: use selected (2)   0: dismiss
+  8: select recommended   9: select all except commands   Tab: use selected (2)   0: dismiss
 ```
 
-The number in brackets is the order you ticked them in, and that is the order they are written in. Here, pressing `3`, then `1`, then `9` writes:
+The number in brackets is the order you ticked them in, and that is the order they are written in. Here, pressing `3`, then `1`, then Tab writes:
 
 ```
 Do these tasks:
@@ -86,8 +86,9 @@ Do these tasks:
 2. Run the unit tests in tests/ and fix any failure, then re-run until green.
 ```
 
-- `8` ticks the suggestions marked (Recommended) (or, with `eightPicks: all`, every suggestion except slash commands); press it again to untick them. (That's why there are at most 7 suggestions.)
-- **Tab** works like `9`: the faint ghost text in the empty prompt box always follows your ticks (the recommended suggestion with nothing ticked, that one with one ticked, the numbered draft with several), so Claude Code's own Tab takes exactly that. It needs the plugin's `ghostText` setting on; with it off, the list says only `9`.
+- `8` ticks the suggestions marked (Recommended), and `9` ticks every suggestion except slash commands; press either again to untick them. (That's why there are at most 7 suggestions.)
+- **Tab** uses your ticks: the faint ghost text in the empty prompt box always follows them (the recommended suggestion with nothing ticked, that one with one ticked, the numbered draft with several), so Claude Code's own Tab takes exactly that. Clicking `Tab: use selected` does the same.
+- With the plugin's `ghostText` setting off, Tab can't take the ticks, so `9` uses them instead (`9: use selected`) and there's no select-all key.
 - A slash command (`/code-review high`) can only be used on its own, because anything after it would be read as its arguments. Ticking it unticks the others, and ticking anything else unticks it.
 
 When the right move is to wait (CI, a build, a deploy, someone's reply) and there's nothing useful to type meanwhile, it says so instead, with nothing to pick:
@@ -109,16 +110,15 @@ The settings pane has three parts: every setting with its value on top; the sele
 ──────────────────────────────────────────────────────────────
 Settings
   Selection mode                     multi
-  Key 8 picks                        recommended
 ▸ Max suggestions                    5
   Option mode                        up-to
   Label length                       48
   …
 ──────────────────────────────────────────────────────────────
 Max suggestions
-Show at most this many suggestions (1-7; in multi mode 8 picks
-all, 9 uses the picks, 0 dismisses). Option mode decides
-whether the list may be shorter.
+Show at most this many suggestions (1-7; in multi mode 8 selects
+the recommended ones, 9 selects all, 0 dismisses). Option mode
+decides whether the list may be shorter.
 Now: 5 · Default: 5 (the original next-steps used 3)
 
 Enter: edit in the box below
@@ -128,13 +128,13 @@ Max suggestions:  │ 5                │
 ──────────────────────────────────────────────────────────────
 Preview (sample suggestions with your settings; up-to often shows fewer)
 
-next: type numbers to pick, Tab or 9 to use them, 0 to dismiss
+next: type numbers to pick, Tab to use them, 0 to dismiss
   1: [ ] Run the tests
   2: [ ] Commit the change (Recommended)
   3: [ ] Review the diff (runs alone)
   4: [ ] Update the README
   5: [ ] Open a pull request
-  8: select recommended   Tab/9: use selected   0: dismiss
+  8: select recommended   9: select all except commands   Tab: use selected   0: dismiss
 
 ╭──────────────────────────────────────────────────────────╮
 │ > Commit the change with a short message describing it.  │
@@ -164,8 +164,7 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | Setting | Default | What it does |
 | --- | --- | --- |
 | `selectMode` | `multi` (original: `single`) | `multi`: pick several, as [above](#picking-several-suggestions). `single`: a number key puts that one suggestion in the prompt box |
-| `eightPicks` | `recommended` | `multi` only: what `8` picks. `recommended`: the suggestions marked (Recommended). `all`: every suggestion except slash commands |
-| `maxSuggestions` | `5` (original: `3`) | The most suggestions to show, 1–7 (in multi mode `8` picks all, `9` uses the picks, `0` dismisses) |
+| `maxSuggestions` | `5` (original: `3`) | The most suggestions to show, 1–7 (in multi mode `8` selects the recommended ones, `9` selects all, `0` dismisses) |
 | `optionMode` | `up-to` | How many options to list. `up-to`: only the next steps that clearly matter, from none up to `maxSuggestions`, with no filler; you may see just one. `exactly`: always fill every slot |
 | `labelChars` | `48`\* | Longest suggestion label, 20–300 characters |
 | `promptChars` | `600`\* | Longest suggested prompt, 200–4000 characters |
@@ -173,7 +172,7 @@ The pane opens beside the conversation in a wide terminal, or above the prompt o
 | `promptStyle` | `standard`\* | How long the suggested prompts are. `standard`: no guidance. `detailed`: 1–3 sentences saying what to do, where, and what done looks like. `brief`: one short sentence. With `display: prompt`, `standard` or `brief` fits more suggestions |
 | `combineHeader` | `Do these tasks:` | `multi` only: the line above the list when several are picked; leave empty for none |
 | `extraInstructions` | none | Your own wishes for the suggestions, e.g. `write prompts in Thai` |
-| `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it (in multi mode, it follows your picks) |
+| `ghostText` | on\* | Also show the top suggestion as faint text in the empty prompt box; Tab takes it (in multi mode, it follows your picks, so Tab uses them; with this off, `9` uses the picks instead of selecting all) |
 | `markRecommended` | on | Put (Recommended) after each step the model would advise now (there can be more than one); ghost text offers the first, and `8` can select them all |
 | `suggestSkills` | on\* | Let suggestions be your skills and slash commands |
 | `minAnswerChars` | `80`\* | No suggestions after answers shorter than this many characters |

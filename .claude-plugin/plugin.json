@@ -22,7 +22,7 @@
     "selectMode": {
       "type": "string",
       "title": "Selection mode (default: multi)",
-      "description": "single: a number key puts that one suggestion in the prompt box (as the original next-steps). multi: number keys toggle suggestions, 8 selects the ones marked (Recommended) (see Key 8 picks), and Tab or 9 puts all picked ones in the prompt box.",
+      "description": "single: a number key puts that one suggestion in the prompt box (as the original next-steps). multi: number keys toggle suggestions, 8 selects the ones marked (Recommended), 9 selects all, and Tab puts the picked ones in the prompt box (9 does, when Tab can't).",
       "options": [
         "multi",
         "single"
@@ -30,21 +30,10 @@
       "required": false,
       "default": "multi"
     },
-    "eightPicks": {
-      "type": "string",
-      "title": "Key 8 picks (default: recommended)",
-      "description": "In multi mode, what the 8 key picks. all: every suggestion except slash commands. recommended: the suggestions marked (Recommended). Pressing 8 again clears the picks.",
-      "options": [
-        "all",
-        "recommended"
-      ],
-      "required": false,
-      "default": "recommended"
-    },
     "maxSuggestions": {
       "type": "number",
       "title": "Max suggestions (default: 5)",
-      "description": "Show at most this many suggestions (1-7; in multi mode 8 picks all, 9 uses the picks, 0 dismisses). Option mode decides whether the list may be shorter.",
+      "description": "Show at most this many suggestions (1-7; in multi mode 8 selects the recommended ones, 9 selects all, 0 dismisses). Option mode decides whether the list may be shorter.",
       "required": false,
       "default": 5
     },
@@ -114,14 +103,14 @@
     "ghostText": {
       "type": "boolean",
       "title": "Tab ghost text (default: on)",
-      "description": "Also offer the top suggestion as dim ghost text in the prompt box, taken with Tab.",
+      "description": "Also offer the top suggestion as dim ghost text in the prompt box, taken with Tab. In multi mode it follows your picks, so Tab uses them; with this off, 9 uses the picks instead of selecting all.",
       "required": false,
       "default": true
     },
     "markRecommended": {
       "type": "boolean",
       "title": "Mark recommended (default: on)",
-      "description": "Put (Recommended) after each next step the model would advise taking now (there can be more than one), as Claude's own multiple-choice questions do. Tab ghost text offers the first of them; in multi mode, 8 can select them all.",
+      "description": "Put (Recommended) after each next step the model would advise taking now (there can be more than one), as Claude's own multiple-choice questions do. Tab ghost text offers the first of them; in multi mode, 8 selects them all.",
       "required": false,
       "default": true
     },

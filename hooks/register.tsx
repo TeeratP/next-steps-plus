@@ -9,8 +9,9 @@
 // (then the fork writes no labels). Suggestions that would not fit the
 // band's rows are left off the end. In single mode (the default, as the
 // original) a press writes that prompt into the real composer as the person's
-// draft ($.prompt.fill). In multi mode a press toggles it, 8 picks every prose
-// suggestion, and 9 writes the picked ones, numbered in the order picked. A
+// draft ($.prompt.fill). In multi mode a press toggles it, 8 picks the
+// recommended ones, 9 picks every prose suggestion, and Tab writes the picked
+// ones, numbered in the order picked (9 writes them when Tab can't). A
 // slash-command suggestion runs alone (the rest of a prompt would become its
 // arguments), so picking one clears the others and picking another clears it.
 // 0 dismisses. When the move now is to wait (CI, a build, someone's reply),
@@ -56,12 +57,12 @@ type Settings = {
   promptStyle: 'standard' | 'detailed' | 'brief'
   ghostText: boolean
   markRecommended: boolean
-  eightPicks: 'all' | 'recommended'
   combineHeader: string
   extraInstructions: string
 }
 
-// Digits 1-7 pick, 8 selects (eightPicks), 9 fills, 0 dismisses: bare
+// Digits 1-7 pick, 8 selects the recommended ones, 9 selects all (or, when
+// Tab can't take the picks, uses them), 0 dismisses: bare
 // digits are the only keys an empty composer hands to a band Button.
 const SUGGESTIONS_LIMIT = 7
 const EXTRA_INSTRUCTIONS_MAX = 500
@@ -257,34 +258,31 @@ function proseIndexes(items: readonly Suggestion[]): number[] {
   return items.flatMap((item, index) => (isCommand(item) ? [] : [index]))
 }
 
-// What 8 picks among the first `shown` (those that fit the band), by the
-// eightPicks setting: every prose suggestion, or the recommended ones (a
-// recommended command alone, since a command runs alone).
-function eightIndexes(items: readonly Suggestion[], shown: number, mode: Settings['eightPicks']): number[] {
+// What 8 picks among the first `shown` (those that fit the band): the
+// recommended prose suggestions, or a recommended command alone, since a
+// command runs alone.
+function recommendedIndexes(items: readonly Suggestion[], shown: number): number[] {
   const inView = items.slice(0, shown)
-  if (mode === 'all') return proseIndexes(inView)
   const prose = inView.flatMap((item, index) => (item.recommended && !isCommand(item) ? [index] : []))
   if (prose.length > 0) return prose
   const command = inView.findIndex(item => item.recommended)
   return command === -1 ? [] : [command]
 }
 
-// The keys 8 shows for, by mode: all needs two prose suggestions (one is a
-// plain press), recommended needs one recommended suggestion.
-function eightShown(items: readonly Suggestion[], shown: number, mode: Settings['eightPicks']): boolean {
-  return eightIndexes(items, shown, mode).length >= (mode === 'all' ? 2 : 1)
+// What 9 picks while Tab uses the picks: every prose suggestion in view. It
+// shows only for two or more, since one is a plain press.
+function allIndexes(items: readonly Suggestion[], shown: number): number[] {
+  return proseIndexes(items.slice(0, shown))
 }
 
-function eightLabel(items: readonly Suggestion[], mode: Settings['eightPicks']): string {
-  return mode === 'recommended' ? 'select recommended' : `select all${items.some(isCommand) ? ' except commands' : ''}`
+function allLabel(items: readonly Suggestion[]): string {
+  return `select all${items.some(isCommand) ? ' except commands' : ''}`
 }
 
-// 8: picks what eightIndexes says; pressed again with exactly those picked,
-// clears.
-function pickAll($: EngineInterface, shown: number): void {
+// 8 and 9: pick `chosen`; pressed again with exactly those picked, clears.
+function pickSet($: EngineInterface, chosen: number[]): void {
   if (view.kind !== 'offer') return
   const { items, picked } = view
-  const chosen = eightIndexes(items, shown, active.eightPicks)
   const same = picked.length === chosen.length && chosen.every(i => picked.includes(i))
   offerPicks($, items, same ? [] : chosen)
 }
@@ -293,7 +291,7 @@ function pickAll($: EngineInterface, shown: number): void {
 let active: Settings
 
 // A new set of picks: redraw, and point the prompt box's ghost text at what
-// Tab should take: the picks as the draft 9 writes, or with none picked the
+// Tab should take: the picks as the numbered draft, or with none picked the
 // recommended (else first) suggestion. Claude Code's Tab accepts ghost text,
 // so this is how Tab uses the picks.
 function offerPicks($: EngineInterface, items: Suggestion[], picked: number[]): void {
@@ -339,7 +337,6 @@ function settings(options: Record<string, unknown> | undefined): Settings {
     promptStyle: options?.promptStyle === 'detailed' || options?.promptStyle === 'brief' ? options.promptStyle : 'standard',
     ghostText: options?.ghostText !== false,
     markRecommended: options?.markRecommended !== false,
-    eightPicks: options?.eightPicks === 'all' ? 'all' : 'recommended',
     combineHeader: text(options?.combineHeader, 'Do these tasks:', 200),
     extraInstructions: text(options?.extraInstructions, '', EXTRA_INSTRUCTIONS_MAX),
   }
@@ -373,7 +370,6 @@ const PANE = 'next-steps-plus-settings'
 const COMMAND = 'next-steps-plus'
 const FIELDS = [
   'selectMode',
-  'eightPicks',
   'maxSuggestions',
   'optionMode',
   'labelChars',
@@ -388,7 +384,7 @@ const FIELDS = [
   'minAnswerChars',
 ] as const
 // Fields whose default is the original next-steps' (the README's * marks).
-const NEW_FIELDS: ReadonlySet<string> = new Set(['optionMode', 'combineHeader', 'extraInstructions', 'markRecommended', 'eightPicks'])
+const NEW_FIELDS: ReadonlySet<string> = new Set(['optionMode', 'combineHeader', 'extraInstructions', 'markRecommended'])
 // Fields the original has whose default here differs: the original's value.
 const ORIGINAL_DEFAULTS: Readonly<Record<string, string>> = { selectMode: 'single', maxSuggestions: '3' }
 
@@ -445,7 +441,7 @@ function previewLines(s: Settings, keys: boolean): { lines: PreviewLine[]; ghost
           ? 'next: click to pick, then "use selected"'
           : 'next: click one to put it in the prompt box'
         : multi
-          ? `next: type numbers to pick, ${s.ghostText ? 'Tab or 9' : '9'} to use them, 0 to dismiss`
+          ? `next: type numbers to pick, ${s.ghostText ? 'Tab' : '9'} to use them, 0 to dismiss`
           : `next: type ${items.length === 1 ? '1' : `1-${items.length}`} to put one in the prompt box, 0 to dismiss`,
       dim: true,
     },
@@ -458,13 +454,11 @@ function previewLines(s: Settings, keys: boolean): { lines: PreviewLine[]; ghost
       lines.push({ text: `${' '.repeat(multi ? 9 : 5)}${item.prompt}`, dim: true })
     }
   })
-  const eight = s.eightPicks === 'recommended'
-    ? items.some(item => item.recommended)
-      ? '8: select recommended   '
-      : ''
-    : `8: select all${items.some(item => item.prompt.startsWith('/')) ? ' except commands' : ''}   `
-  const use = s.ghostText ? 'Tab/9' : '9'
-  lines.push({ text: multi ? `  ${eight}${use}: use selected   0: dismiss` : '  0: dismiss', dim: false })
+  const eight = items.some(item => item.recommended) ? '8: select recommended   ' : ''
+  const commands = items.filter(item => item.prompt.startsWith('/')).length
+  const nine = s.ghostText && items.length - commands >= 2 ? `9: select all${commands > 0 ? ' except commands' : ''}   ` : ''
+  const use = s.ghostText ? 'Tab' : '9'
+  lines.push({ text: multi ? `  ${eight}${nine}${use}: use selected   0: dismiss` : '  0: dismiss', dim: false })
   const top = items.find(item => item.recommended) ?? items[0]
   const ghost: PreviewGhost = s.ghostText ? { text: top?.prompt ?? '' } : { off: 'the Tab ghost text setting is off' }
   return { lines, ghost }
@@ -798,7 +792,7 @@ export const register: Register = (on, options) => {
               ? 'next: click to pick, then "use selected"'
               : 'next: click one to put it in the prompt box'
             : multi
-              ? `next: type numbers to pick, ${tabTakes ? 'Tab or 9' : '9'} to use them, 0 to dismiss`
+              ? `next: type numbers to pick, ${tabTakes ? 'Tab' : '9'} to use them, 0 to dismiss`
               : `next: type ${items.length === 1 ? '1' : `1-${items.length}`} to put one in the prompt box, 0 to dismiss`}
         </Text>
         {items.map((item, index) => {
@@ -824,26 +818,24 @@ export const register: Register = (on, options) => {
           )
         })}
         <Box marginLeft={2} flexDirection="row" gap={3}>
-          {!multi || !eightShown(items, items.length, s.eightPicks) ? null : (
+          {!multi || recommendedIndexes(items, items.length).length === 0 ? null : (
             <Button
-              key="all"
+              key="recommended"
               hotkey="8"
               plain
-              label={eightLabel(items, s.eightPicks)}
-              onPress={() => pickAll($, items.length)}
+              label="select recommended"
+              onPress={() => pickSet($, recommendedIndexes(items, items.length))}
             />
           )}
-          {picked.length === 0 ? null : (
-            // "Tab/" before the button's own "9: " when Tab takes the picks too.
-            <Box flexDirection="row">
-              {tabTakes ? <Text>Tab/</Text> : null}
-              <Button
-                hotkey="9"
-                plain
-                label={`use selected (${picked.length})`}
-                onPress={() => fill($, draft(items, picked, s.combineHeader))}
-              />
-            </Box>
+          {!multi || !tabTakes || allIndexes(items, items.length).length < 2 ? null : (
+            <Button key="all" hotkey="9" plain label={allLabel(items)} onPress={() => pickSet($, allIndexes(items, items.length))} />
+          )}
+          {picked.length === 0 ? null : tabTakes ? (
+            // Tab takes the picks (the ghost text follows them); the button is
+            // for a click, so it has no digit: 9 selects all instead.
+            <Button key="use" plain label={`Tab: use selected (${picked.length})`} onPress={() => fill($, draft(items, picked, s.combineHeader))} />
+          ) : (
+            <Button key="use" hotkey="9" plain label={`use selected (${picked.length})`} onPress={() => fill($, draft(items, picked, s.combineHeader))} />
           )}
           <Button hotkey="0" plain label="dismiss" onPress={() => show($, { kind: 'hidden' })} />
           {hidden === 0 ? null : <Text dimColor>{`${hidden} more did not fit`}</Text>}
@@ -899,7 +891,6 @@ export const register: Register = (on, options) => {
     const save: Save = async (field, value) => {
       switch (field) {
         case 'selectMode': return $.config.set({ key: 'next-steps-plus.selectMode', value: value })
-        case 'eightPicks': return $.config.set({ key: 'next-steps-plus.eightPicks', value: value })
         case 'maxSuggestions': return $.config.set({ key: 'next-steps-plus.maxSuggestions', value: value })
         case 'optionMode': return $.config.set({ key: 'next-steps-plus.optionMode', value: value })
         case 'labelChars': return $.config.set({ key: 'next-steps-plus.labelChars', value: value })
