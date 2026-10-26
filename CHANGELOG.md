@@ -1,5 +1,11 @@
 # Changelog
 
+### v1.1.0
+
+- In multi mode, `8` selects the suggestions marked (Recommended) and `9` selects every suggestion except slash commands; press either again to clear. Tab uses the picks; the list shows `Tab: use selected (n)`, which can also be clicked.
+- With the plugin's `ghostText` setting off, Tab can't take the picks, so `9` uses them instead (`9: use selected`) and there's no select-all key.
+- The "Key 8 picks" setting (`eightPicks`) is removed, since 8 and 9 now cover both. A saved value is ignored.
+
 ### v1.0.4
 
 - A privacy policy, [PRIVACY.md](PRIVACY.md): the plugin stores nothing outside Claude Code, sends nothing to any other service and collects no telemetry. The README links it.
