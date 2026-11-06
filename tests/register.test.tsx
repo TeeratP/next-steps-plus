@@ -33,10 +33,15 @@ let asked = ''
 let ghost = ''
 
 // Stand in for the engine, finish one turn, and return what reached the box.
-async function offer($: Engine, on: On, reply = REPLY): Promise<string[]> {
+// A revise request is answered `revise.reply`, and its prompt kept in `revise.asks`.
+async function offer($: Engine, on: On, reply = REPLY, revise?: { reply: string; asks: string[] }): Promise<string[]> {
   const filled: string[] = []
   on('command.list', () => ({ value: [{ name: 'code-review', description: 'review', source: 'plugin' }] }))
   on('model.fork', (_, e) => {
+    if (revise !== undefined && e.prompt.includes('asks you to revise it')) {
+      revise.asks.push(e.prompt)
+      return { value: { isAnswered: true, text: revise.reply, usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }
+    }
     asked = e.prompt
     return { value: { isAnswered: true, text: reply, usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }
   })
@@ -316,5 +321,92 @@ test('several recommended steps are all marked, and 8 selects them all', MULTI, 
   await ui.press({ key: 'recommended' })
   await ui.press({ key: 'use' })
   expect(filled).toEqual(['Do these in order:\n1. Run the tests.\n2. Commit.'])
+  await ui.unmount()
+})
+
+const settle = async () => {
+  for (let i = 0; i < 20; i++) await Promise.resolve()
+}
+
+test('a recommended step is drawn bold; the others are plain', BASELINE, async ($, on) => {
+  await offer($, on, MARKED)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  const bold = await ui.find({ type: 'Text', text: 'Commit (Recommended)' })
+  expect(bold?.props.bold).toBe(true)
+  expect(await ui.find({ type: 'Text', text: 'Run the tests' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('[revise] is revealed on hover: drawn hidden in the step\'s own row', BASELINE, async ($, on) => {
+  await offer($, on, MARKED)
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  const button = await ui.find({ type: 'Button', key: 'revise1' })
+  expect(button?.text).toBe('[revise]')
+  expect(await ui.find({ type: 'Box', key: 'row1' })).toBeDefined()
+  expect(await ui.find({ type: 'Input', key: 'note1' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('revise rewrites only that step, and drops its mark when no longer advised', MULTI, async ($, on) => {
+  const asks: string[] = []
+  await offer($, on, MARKED, { reply: JSON.stringify([{ label: 'Plan the commit', prompt: 'Plan the commit, then implement it.' }]), asks })
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  await ui.press({ key: 's0' })
+  await ui.press({ key: 'revise1' })
+  expect(await ui.find({ type: 'Input', key: 'note1' })).toBeDefined()
+  await ui.input({ key: 'note1', text: 'plan and implement instead of just committing' })
+  await settle()
+  expect(asks).toHaveLength(1)
+  expect(asks[0]).toContain('plan and implement instead of just committing')
+  expect(asks[0]).toContain('"label":"Commit"')
+  expect(asks[0]).toContain('only if you would still advise')
+  expect((await ui.find({ type: 'Button', key: 's1' }))?.text).toBe('[ ] Plan the commit')
+  // The other step and its pick are untouched; the box is closed.
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('[1] Run the tests')
+  expect(await ui.find({ type: 'Input', key: 'note1' })).toBeUndefined()
+  // Nothing is recommended now, so 8 is gone.
+  expect(await ui.find({ type: 'Button', key: 'recommended' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a revised step the fork still advises keeps (Recommended), bold', BASELINE, async ($, on) => {
+  await offer($, on, MARKED, { reply: JSON.stringify([{ label: 'Commit and push', prompt: 'Commit and push.', recommended: true }]), asks: [] })
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  await ui.press({ key: 'revise1' })
+  await ui.input({ key: 'note1', text: 'push too' })
+  await settle()
+  expect((await ui.find({ type: 'Text', text: 'Commit and push (Recommended)' }))?.props.bold).toBe(true)
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the tests')
+  await ui.unmount()
+})
+
+test('an empty revise note closes the box and changes nothing', BASELINE, async ($, on) => {
+  const asks: string[] = []
+  await offer($, on, MARKED, { reply: '[]', asks })
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  await ui.press({ key: 'revise0' })
+  await ui.input({ key: 'note0', text: '   ' })
+  await settle()
+  expect(asks).toHaveLength(0)
+  expect(await ui.find({ type: 'Input', key: 'note0' })).toBeUndefined()
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the tests')
+  await ui.unmount()
+})
+
+test('a revise the fork cannot answer keeps the step as it was', BASELINE, async ($, on) => {
+  await offer($, on, MARKED, { reply: 'no json here', asks: [] })
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  await ui.press({ key: 'revise0' })
+  await ui.input({ key: 'note0', text: 'shorter' })
+  await settle()
+  expect((await ui.find({ type: 'Button', key: 's0' }))?.text).toBe('Run the tests')
+  expect(await ui.find({ type: 'Text', text: 'revising…' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('mobile has no [revise]: no text box and no pointer to reveal it', BASELINE, async ($, on) => {
+  await offer($, on, MARKED)
+  const ui = await $.ui.mount({ ...BAND, surface: 'mobile' })
+  expect(await ui.find({ type: 'Button', key: 'revise0' })).toBeUndefined()
   await ui.unmount()
 })

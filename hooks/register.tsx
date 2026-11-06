@@ -32,7 +32,8 @@ type Suggestion = { label: string; prompt: string; recommended: boolean }
 type View =
   | { kind: 'hidden' }
   | { kind: 'loading'; turnId: string }
-  | { kind: 'offer'; items: Suggestion[]; picked: number[] }
+  // `revising`: the step whose revise box is open; `busy`: the steps a fork is rewriting.
+  | { kind: 'offer'; items: Suggestion[]; picked: number[]; revising?: number; busy?: number[] }
   | { kind: 'wait'; text: string }
 
 // Put after the label of a step the fork marked recommended, as Claude's own
@@ -178,6 +179,36 @@ function forkPrompt(skills: string, s: Settings): string {
   )
 }
 
+const REVISE_NOTE_MAX = 500
+
+// What the fork is asked to rewrite one step by the person's note. It may
+// drop the recommended mark: the step is recommended only if still advised.
+function revisePrompt(item: Suggestion, note: string, s: Settings): string {
+  const original = JSON.stringify(
+    s.display === 'prompt'
+      ? { prompt: item.prompt, recommended: item.recommended }
+      : { label: item.label, prompt: item.prompt, recommended: item.recommended },
+  )
+  return (
+    'Do not continue the task. You suggested this next step for the user: ' +
+    `${original}. The user asks you to revise it: <note>${note}</note>. The note is the user's own ` +
+    'wish for this one step. Rewrite only this step so it does what the note asks, in the user\'s voice, ' +
+    'specific to this conversation. ' +
+    (s.promptStyle === 'detailed'
+      ? `Make the prompt complete enough to act on without re-asking, under ${s.promptChars} characters. `
+      : s.promptStyle === 'brief'
+        ? 'Keep the prompt to one short sentence. '
+        : '') +
+    (s.markRecommended
+      ? 'Set "recommended": true only if you would still advise taking the revised step now; otherwise leave it off. '
+      : '') +
+    'Answer with ONLY a JSON array of one object, no prose, no code fence: ' +
+    (s.display === 'prompt'
+      ? `[{"prompt": "<full prompt text>"${s.markRecommended ? ', "recommended": true' : ''}}]`
+      : `[{"label": "<≤${s.labelChars} chars: a one-line summary>", "prompt": "<full prompt text>"${s.markRecommended ? ', "recommended": true' : ''}}]`)
+  )
+}
+
 function isCommand(item: Suggestion): boolean {
   return item.prompt.startsWith('/')
 }
@@ -301,6 +332,47 @@ function offerPicks($: EngineInterface, items: Suggestion[], picked: number[]): 
   const top = items.find(item => item.recommended) ?? items[0]
   const text = picked.length > 0 ? draft(items, picked, active.combineHeader) : (top?.prompt ?? '')
   if (text !== '') void $.prompt.suggest({ text }).catch(() => undefined)
+}
+
+// Opens the revise box under step `index`, closing any other.
+function startRevise($: EngineInterface, index: number): void {
+  if (view.kind !== 'offer' || view.busy?.includes(index)) return
+  show($, { ...view, revising: view.revising === index ? undefined : index })
+}
+
+// Rewrites step `index` by `note` in a fork and puts the answer in its place
+// alone: the other steps and the picks stay. An empty note just closes the box.
+async function revise($: EngineInterface, index: number, text: string): Promise<void> {
+  if (view.kind !== 'offer') return
+  const note = clean(text, REVISE_NOTE_MAX)
+  const item = view.items[index]
+  if (note === '' || item === undefined) {
+    show($, { ...view, revising: undefined })
+    return
+  }
+  show($, { ...view, revising: undefined, busy: [...(view.busy ?? []), index] })
+  let next: Suggestion | undefined
+  try {
+    const commands = await $.command.list().catch(() => null)
+    const known = commands === null ? null : new Set(commands.map(command => command.name))
+    const reply = await $.model.fork({ prompt: revisePrompt(item, note, active) })
+    if (reply.isAnswered) next = parseSuggestions(reply.text, known, { ...active, maxSuggestions: 1 }).items[0]
+  } catch (error) {
+    $.ui.log(`revise fork failed: ${String(error)}`)
+  }
+  // The offer was replaced (a new turn, a dismiss) while the fork ran: drop it.
+  if (view.kind !== 'offer' || view.items[index] !== item) return
+  const busy = (view.busy ?? []).filter(i => i !== index)
+  if (next === undefined) {
+    show($, { ...view, busy })
+    $.ui.toast('could not revise that step')
+    return
+  }
+  const items = view.items.map((one, i) => (i === index ? (next as Suggestion) : one))
+  // A step that became a command runs alone, so it leaves the other picks.
+  const picked = isCommand(next) && view.picked.includes(index) ? [index] : view.picked
+  view = { ...view, items, busy }
+  offerPicks($, items, picked)
 }
 
 function fill($: EngineInterface, text: string): void {
@@ -742,7 +814,10 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next): Promise<RenderElement> => {
     const below = await next(e)
     if (e.props.hasSurvey || e.props.isWorking || view.kind === 'hidden') return below
-    const { Box, Text, Button } = $.ui.resolve(e)
+    const table = $.ui.resolve(e)
+    const { Box, Text, Button } = table
+    // Revise needs a text box and a pointer to reveal it; mobile has neither.
+    const Input = 'Input' in table && e.surface !== 'mobile' ? table.Input : undefined
 
     if (view.kind === 'loading') {
       return (
@@ -768,7 +843,7 @@ export const register: Register = (on, options) => {
       )
     }
 
-    const { items: offered, picked } = view
+    const { items: offered, picked, revising, busy = [] } = view
     const multi = s.selectMode === 'multi'
     // Tab takes the picks through the ghost text, while ghostText is on.
     const tabTakes = s.ghostText
@@ -776,9 +851,10 @@ export const register: Register = (on, options) => {
     const previewIndent = 2 + (multi ? 7 : 3)
     const withPreview = (item: Suggestion) => s.display === 'label+prompt' && item.prompt !== item.label
     const heights = offered.map(
-      item =>
+      (item, index) =>
         rowsOf(`${item.label}${item.recommended ? RECOMMENDED : ''}`, labelIndent, e.props.bodyColumns) +
-        (withPreview(item) ? rowsOf(item.prompt, previewIndent, e.props.bodyColumns) : 0),
+        (withPreview(item) ? rowsOf(item.prompt, previewIndent, e.props.bodyColumns) : 0) +
+        (index === revising || busy.includes(index) ? 1 : 0),
     )
     const items = offered.slice(0, fitting(heights, e.props.maxRows - BAND_CHROME_ROWS))
     const hidden = offered.length - items.length
@@ -800,15 +876,44 @@ export const register: Register = (on, options) => {
           const mark = !multi ? '' : order === -1 ? '[ ] ' : `[${order + 1}] `
           const alone = multi && isCommand(item) ? ' (runs alone)' : ''
           const preview = withPreview(item) ? item.prompt : ''
+          const label = `${mark}${item.label}${item.recommended ? RECOMMENDED : ''}${alone}`
+          const isBusy = busy.includes(index)
           return (
             <Box key={`s${index}`} marginLeft={2} flexDirection="column">
-              <Button
-                key={`s${index}`}
-                hotkey={String(index + 1)}
-                plain
-                label={`${mark}${item.label}${item.recommended ? RECOMMENDED : ''}${alone}`}
-                onPress={() => (multi ? toggle($, index) : fill($, item.prompt))}
-              />
+              {/* The row is its own hover scope: [revise] shows while the pointer is on it. */}
+              <Box key={`row${index}`} flexDirection="row">
+                <Button
+                  key={`s${index}`}
+                  hotkey={String(index + 1)}
+                  plain
+                  onPress={() => (multi ? toggle($, index) : fill($, item.prompt))}
+                >
+                  {/* A recommended step is bold, so the eye finds it first. */}
+                  {item.recommended ? <Text bold>{label}</Text> : label}
+                </Button>
+                {Input === undefined || isBusy ? null : (
+                  <Box display="none" hover={{ display: 'flex' }} marginLeft={1}>
+                    <Button key={`revise${index}`} plain label="[revise]" onPress={() => startRevise($, index)} />
+                  </Box>
+                )}
+              </Box>
+              {Input === undefined || revising !== index ? null : (
+                <Box marginLeft={multi ? 7 : 3}>
+                  <Input
+                    key={`note${index}`}
+                    label="revise: "
+                    placeholder="how to change this step (Enter; empty to cancel)"
+                    submitLabel="revise"
+                    autoFocus
+                    onSubmit={value => void revise($, index, value)}
+                  />
+                </Box>
+              )}
+              {isBusy ? (
+                <Box marginLeft={multi ? 7 : 3}>
+                  <Text dimColor>revising…</Text>
+                </Box>
+              ) : null}
               {preview === '' ? null : (
                 <Box marginLeft={multi ? 7 : 3}>
                   <Text dimColor>{preview}</Text>

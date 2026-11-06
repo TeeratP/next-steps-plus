@@ -20,7 +20,8 @@ https://github.com/user-attachments/assets/e85061d4-6110-4480-b0a1-1e4bd418e54d
 | Suggestions | 3, always | up to 7, only the ones that matter |
 | Pick | one | **several**, written in the order you tick them |
 | Tab | takes the top suggestion | **takes your picks** (the ghost text follows them) |
-| (Recommended) | – | marks the steps worth doing now; `8` selects them all |
+| (Recommended) | – | marks the steps worth doing now, in bold; `8` selects them all |
+| Revise | – | `[revise]` on a step rewrites just that step from your note |
 | Nothing to do? | – | says so ("wait for the CI run to finish") |
 | Settings | a few, in `/config` | more of them, plus a pane with a live preview: `/next-steps-plus` |
 
@@ -29,7 +30,8 @@ Want the original behaviour? Set `selectMode` to `single` and `maxSuggestions` t
 ## Highlights
 
 - **Pick several, send one prompt.** Tick suggestions with the number keys (or `9` for all of them), press Tab, and they become one numbered draft.
-- **(Recommended) marks what's worth doing now,** one step or several, and `8` selects them all in one press.
+- **(Recommended) marks what's worth doing now,** in bold, one step or several, and `8` selects them all in one press.
+- **Revise one step.** Rest the pointer on a step and `[revise]` appears; press it, type how to change the step ("plan and implement instead of just opening an issue") and press Enter. Only that step is rewritten; the others and your ticks stay. A revised step keeps (Recommended) only if Claude would still advise it.
 - **Only what matters.** From none to 5 steps, never a padded list, and when the move is to wait for CI or a build, it says so instead of inventing work.
 - **Knows your skills.** A suggestion can be one of your own slash commands or skills (`/code-review high`); ones you don't have are dropped.
 - **Tune everything, live.** `/next-steps-plus` explains every setting and previews your suggestion list as you change it: longer labels, the full prompt as the label, prompt style, and more.
@@ -89,6 +91,7 @@ Do these tasks:
 - `8` ticks the suggestions marked (Recommended), and `9` ticks every suggestion except slash commands; press either again to untick them. (That's why there are at most 7 suggestions.)
 - **Tab** uses your ticks: the faint ghost text in the empty prompt box always follows them (the recommended suggestion with nothing ticked, that one with one ticked, the numbered draft with several), so Claude Code's own Tab takes exactly that. Clicking `Tab: use selected` does the same.
 - With the plugin's `ghostText` setting off, Tab can't take the ticks, so `9` uses them instead (`9: use selected`) and there's no select-all key.
+- `[revise]` shows at the end of a step while the pointer rests on it. Pressing it opens a `revise:` box under the step; type how to change it and press Enter (an empty note closes the box). A fork of the session rewrites that step alone, so it knows the conversation; the line says `revising…` meanwhile. Not on mobile, which has no text box or pointer.
 - A slash command (`/code-review high`) can only be used on its own, because anything after it would be read as its arguments. Ticking it unticks the others, and ticking anything else unticks it.
 
 When the right move is to wait (CI, a build, a deploy, someone's reply) and there's nothing useful to type meanwhile, it says so instead, with nothing to pick:
