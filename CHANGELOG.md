@@ -1,5 +1,10 @@
 # Changelog
 
+### Unreleased
+
+- A step marked (Recommended) is drawn in bold.
+- `[revise]` appears at the end of a step while the pointer rests on it. Press it, type how to change that step and press Enter: a fork rewrites only that step, keeping the others and your ticks. The revised step keeps (Recommended) only if the fork would still advise it. Not on mobile.
+
 ### v1.1.0
 
 - In multi mode, `8` selects the suggestions marked (Recommended) and `9` selects every suggestion except slash commands; press either again to clear. Tab uses the picks; the list shows `Tab: use selected (n)`, which can also be clicked.
