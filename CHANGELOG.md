@@ -1,6 +1,6 @@
 # Changelog
 
-### Unreleased
+### v1.2.0
 
 - A step marked (Recommended) is drawn in bold.
 - `[revise]` appears at the end of a step while the pointer rests on it. Press it, type how to change that step and press Enter: a fork rewrites only that step, keeping the others and your ticks. The revised step keeps (Recommended) only if the fork would still advise it. Not on mobile.
